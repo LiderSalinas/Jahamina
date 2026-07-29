@@ -1,9 +1,12 @@
-from sqlalchemy import Column, Integer, ForeignKey
+from sqlalchemy import Column, ForeignKey, Integer, UniqueConstraint
 from sqlalchemy.orm import relationship
 from app.core.db import Base
 
 class ViajeUnido(Base):
     __tablename__ = "viajes_unidos"
+    __table_args__ = (
+        UniqueConstraint("usuario_id", "viaje_id", name="uq_usuario_viaje"),
+    )
 
     id = Column(Integer, primary_key=True, index=True)
     usuario_id = Column(Integer, ForeignKey("usuarios.id"), nullable=False)

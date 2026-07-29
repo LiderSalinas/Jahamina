@@ -6,9 +6,16 @@ from app.models.usuario import Usuario
 from app.schemas.user_schema import UsuarioCreate, UsuarioResponse, TokenResponse
 from app.core.db import get_db
 from app.core.security import obtener_password_hash, verificar_contraseña
-from app.core.jwt import crear_token_acceso
+from app.core.security import get_current_user
+from app.core.jwt import create_access_token
 
 router = APIRouter()
+
+@router.get("/me", response_model=UsuarioResponse)
+def obtener_usuario_actual(
+    usuario: Usuario = Depends(get_current_user),
+):
+    return usuario
 
 @router.post("/registro", response_model=UsuarioResponse)
 def registrar_usuario(usuario: UsuarioCreate, db: Session = Depends(get_db)):
@@ -30,7 +37,8 @@ def registrar_usuario(usuario: UsuarioCreate, db: Session = Depends(get_db)):
 
 @router.post("/login", response_model=TokenResponse)
 def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
-    usuario = db.query(Usuario).filter(Usuario.email == form_data.username).first()
+    email = form_data.username.strip().lower()
+    usuario = db.query(Usuario).filter(Usuario.email == email).first()
     if not usuario or not verificar_contraseña(form_data.password, usuario.hashed_password):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -38,5 +46,5 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    access_token = crear_token_acceso(data={"sub": usuario.email})
+    access_token = create_access_token(data={"sub": usuario.email})
     return {"access_token": access_token, "token_type": "bearer"}

@@ -3,7 +3,7 @@ from sqlalchemy.orm import sessionmaker, declarative_base
 from app.core.settings import settings
 
 # URL de conexión armada dinámicamente
-SQLALCHEMY_DATABASE_URL = settings.DATABASE_URL
+SQLALCHEMY_DATABASE_URL = settings.database_url
 
 # Crear el motor de conexión
 engine = create_engine(SQLALCHEMY_DATABASE_URL)

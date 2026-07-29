@@ -1,11 +1,8 @@
 from sqlalchemy.orm import Session
-from app.models.viaje_model import Viaje
+
 from app.schemas.viaje_schema import ViajeCreate
+from app.services.viaje_service import crear_viaje as crear_viaje_service
 
 
-def crear_viaje(db: Session, viaje: ViajeCreate, conductor: str):
-    nuevo_viaje = Viaje(**viaje.model_dump(), conductor=conductor)
-    db.add(nuevo_viaje)
-    db.commit()
-    db.refresh(nuevo_viaje)
-    return nuevo_viaje
+def crear_viaje(db: Session, viaje: ViajeCreate, usuario_id: int):
+    return crear_viaje_service(db, viaje, usuario_id)

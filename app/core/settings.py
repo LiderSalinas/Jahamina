@@ -1,5 +1,6 @@
-from pydantic_settings import BaseSettings
 from functools import lru_cache
+
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
@@ -7,26 +8,30 @@ class Settings(BaseSettings):
     postgres_password: str
     postgres_db: str
     postgres_host: str
-    postgres_port: str
+    postgres_port: int
+
+    jwt_secret_key: str
+    jwt_algorithm: str = "HS256"
     access_token_expire_minutes: int = 30
-    secret_key: str = "mi_super_clave_secreta_123"  
-    algorithm: str = "HS256"                        
+
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        case_sensitive=False,
+        extra="ignore",
+    )
 
     @property
-    def DATABASE_URL(self) -> str:
+    def database_url(self) -> str:
         return (
-            f"postgresql://{self.postgres_user}:"
-            f"{self.postgres_password}@"
-            f"{self.postgres_host}:{self.postgres_port}/"
-            f"{self.postgres_db}"
+            f"postgresql+psycopg2://{self.postgres_user}:"
+            f"{self.postgres_password}@{self.postgres_host}:"
+            f"{self.postgres_port}/{self.postgres_db}"
         )
 
-    class Config:
-        extra = "allow"  # Esto permite ignorar variables no definidas en desarrollo
 
-
-@lru_cache()
-def get_settings():
+@lru_cache
+def get_settings() -> Settings:
     return Settings()
 
 
