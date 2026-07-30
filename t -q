@@ -1,0 +1,27 @@
+warning: in the working copy of 'Dockerfile', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'alembic.ini', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'alembic/env.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'app/api/routes/auth.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'app/api/routes/viajes.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'app/core/security.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'app/core/settings.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'app/main.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'app/services/user_service.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'app/services/viaje_service.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'docker-compose.yml', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'requirements.txt', LF will be replaced by CRLF the next time Git touches it
+ Dockerfile                                         |  22 [32m++[m[31m---[m
+ alembic.ini                                        |   2 [32m+[m[31m-[m
+ alembic/env.py                                     |  12 [32m++[m[31m-[m
+ alembic/versions/95aa48282bc9_initial_migration.py |  64 [31m-------------[m
+ .../a015d1f49f4a_add_descripcion_to_viajes.py      |  32 [31m-------[m
+ app/api/routes/auth.py                             |  41 [32m++++[m[31m-----[m
+ app/api/routes/viajes.py                           |  17 [32m+++[m[31m-[m
+ app/core/security.py                               |   3 [32m+[m[31m-[m
+ app/core/settings.py                               |  25 [32m++++[m[31m-[m
+ app/main.py                                        |  37 [32m+++++[m[31m---[m
+ app/services/user_service.py                       |  40 [32m++++++[m[31m--[m
+ app/services/viaje_service.py                      | 101 [32m+++++++++++++++[m[31m------[m
+ docker-compose.yml                                 |  48 [32m+++++++[m[31m---[m
+ requirements.txt                                   | Bin [31m530[m -> [32m258[m bytes
+ 14 files changed, 234 insertions(+), 210 deletions(-)

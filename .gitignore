@@ -1,0 +1,42 @@
+# Secrets and environment overrides
+.env
+.env.dev
+.env.prod
+.env.local
+.env.*.local
+!.env.example
+!.env.docker.example
+
+# Python
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*.pyo
+.pytest_cache/
+pytest-cache-files-*/
+.coverage
+htmlcov/
+
+# Local databases and logs
+*.db
+*.sqlite
+*.sqlite3
+*.log
+
+# Frontend
+node_modules/
+.next/
+dist/
+build/
+coverage/
+
+# Editors and operating systems
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+frontend/.env.local
+*.pyc
+frontend/node_modules/
+frontend/.next/

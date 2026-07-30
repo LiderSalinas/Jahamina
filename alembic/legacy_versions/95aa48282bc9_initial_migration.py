@@ -1,4 +1,4 @@
-"""initial migration
+"""Legacy initial migration.
 
 Revision ID: 95aa48282bc9
 Revises: 

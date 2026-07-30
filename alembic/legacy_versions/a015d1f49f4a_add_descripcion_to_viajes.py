@@ -1,4 +1,4 @@
-"""add descripcion to viajes
+"""Legacy descripcion migration.
 
 Revision ID: a015d1f49f4a
 Revises: 95aa48282bc9

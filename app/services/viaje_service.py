@@ -1,64 +1,176 @@
-from fastapi import HTTPException
-from sqlalchemy.orm import Session
-from app.models.viaje_model import Viaje
-from app.models.pasajero_viaje import ViajeUnido
-from app.schemas.viaje_schema import ViajeCreate
 from datetime import datetime
 
+from fastapi import HTTPException
+from sqlalchemy import select
+from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.orm import Session
+
+from app.models.solicitud_viaje import SolicitudViaje
+from app.models.vehiculo import Vehiculo
+from app.models.viaje_model import Viaje
+from app.schemas.viaje_schema import ViajeCreate
+
+
 def crear_viaje(db: Session, viaje_data: ViajeCreate, usuario_id: int):
-    nuevo_viaje = Viaje(**viaje_data.model_dump(), creador_id=usuario_id)
-    db.add(nuevo_viaje)
-    db.commit()
-    db.refresh(nuevo_viaje)
+    vehiculo = db.get(Vehiculo, viaje_data.vehiculo_id)
+    if not vehiculo:
+        raise HTTPException(status_code=404, detail="Vehículo no encontrado")
+    if vehiculo.propietario_id != usuario_id:
+        raise HTTPException(
+            status_code=403,
+            detail="El vehículo no pertenece al conductor",
+        )
+    if not vehiculo.activo:
+        raise HTTPException(
+            status_code=400,
+            detail="No puedes usar un vehículo inactivo",
+        )
+    if viaje_data.cupos_totales > vehiculo.capacidad:
+        raise HTTPException(
+            status_code=400,
+            detail="Los cupos superan la capacidad del vehículo",
+        )
+    nuevo_viaje = Viaje(
+        **viaje_data.model_dump(),
+        creador_id=usuario_id,
+        cupos_disponibles=viaje_data.cupos_totales,
+        estado="publicado",
+        cancelado=False,
+    )
+    try:
+        db.add(nuevo_viaje)
+        db.commit()
+        db.refresh(nuevo_viaje)
+    except SQLAlchemyError:
+        db.rollback()
+        raise
     return nuevo_viaje
 
+
 def obtener_viajes_disponibles(db: Session):
-    return (
-        db.query(Viaje)
-        .filter(Viaje.cancelado.is_(False), Viaje.fecha > datetime.now())
-        .all()
+    return list(
+        db.scalars(
+            select(Viaje).where(
+                Viaje.estado == "publicado",
+                Viaje.cupos_disponibles > 0,
+                Viaje.fecha > datetime.now(),
+            )
+        )
     )
+
 
 def obtener_mis_viajes(db: Session, usuario_id: int):
-    return db.query(Viaje).filter(Viaje.creador_id == usuario_id).all()
+    return list(
+        db.scalars(select(Viaje).where(Viaje.creador_id == usuario_id))
+    )
+
 
 def cancelar_viaje(db: Session, viaje_id: int, usuario_id: int):
-    viaje = db.query(Viaje).filter(Viaje.id == viaje_id, Viaje.creador_id == usuario_id).first()
+    viaje = db.get(Viaje, viaje_id)
     if not viaje:
         raise HTTPException(status_code=404, detail="Viaje no encontrado")
-    if viaje.cancelado:
-        raise HTTPException(status_code=400, detail="El viaje ya está cancelado")
+    if viaje.creador_id != usuario_id:
+        raise HTTPException(
+            status_code=403,
+            detail="No tienes permiso para cancelar este viaje",
+        )
+    if viaje.estado == "cancelado":
+        raise HTTPException(status_code=409, detail="El viaje ya está cancelado")
+    if viaje.estado == "finalizado":
+        raise HTTPException(
+            status_code=400,
+            detail="No puedes cancelar un viaje finalizado",
+        )
     viaje.cancelado = True
-    db.commit()
+    viaje.estado = "cancelado"
+    solicitudes = list(
+        db.scalars(
+            select(SolicitudViaje).where(
+                SolicitudViaje.viaje_id == viaje.id,
+                SolicitudViaje.estado.in_(["pendiente", "aceptada"]),
+            )
+        )
+    )
+    for solicitud in solicitudes:
+        solicitud.estado = "cancelada"
+    try:
+        db.commit()
+        db.refresh(viaje)
+    except SQLAlchemyError:
+        db.rollback()
+        raise
     return viaje
 
+
 def unirse_a_viaje(db: Session, viaje_id: int, usuario_id: int):
-    viaje = db.query(Viaje).filter(Viaje.id == viaje_id, Viaje.cancelado == False).first()
-    if not viaje:
-        raise HTTPException(status_code=404, detail="Viaje no disponible o fue cancelado")
+    from app.schemas.solicitud_schema import SolicitudCreate
+    from app.services.solicitud_service import crear_solicitud
 
-    if viaje.creador_id == usuario_id:
-        raise HTTPException(status_code=400, detail="No puedes unirte a tu propio viaje")
+    return crear_solicitud(
+        db,
+        viaje_id,
+        usuario_id,
+        SolicitudCreate(),
+    )
 
-    ya_unido = db.query(ViajeUnido).filter(
-        ViajeUnido.viaje_id == viaje_id,
-        ViajeUnido.usuario_id == usuario_id
-    ).first()
-
-    if ya_unido:
-        raise HTTPException(status_code=400, detail="Ya estás unido a este viaje")
-
-    nuevo_registro = ViajeUnido(viaje_id=viaje_id, usuario_id=usuario_id)
-    db.add(nuevo_registro)
-    db.commit()
-    db.refresh(nuevo_registro)
-    return nuevo_registro
 
 def obtener_viajes_unidos(db: Session, usuario_id: int):
-    return (
-        db.query(Viaje)
-        .join(ViajeUnido)
-        .filter(ViajeUnido.usuario_id == usuario_id)
-        .filter(Viaje.cancelado == False)
-        .all()
+    return list(
+        db.scalars(
+            select(Viaje)
+            .join(SolicitudViaje)
+            .where(
+                SolicitudViaje.pasajero_id == usuario_id,
+                SolicitudViaje.estado == "aceptada",
+                Viaje.estado.not_in(["cancelado", "finalizado"]),
+            )
+        )
     )
+
+
+def cambiar_estado_viaje(
+    db: Session,
+    viaje_id: int,
+    usuario_id: int,
+    nuevo_estado: str,
+) -> Viaje:
+    viaje = db.get(Viaje, viaje_id)
+    if not viaje:
+        raise HTTPException(status_code=404, detail="Viaje no encontrado")
+    if viaje.creador_id != usuario_id:
+        raise HTTPException(
+            status_code=403,
+            detail="Solo el conductor puede cambiar el estado",
+        )
+    if nuevo_estado == "en_curso" and viaje.estado not in {
+        "publicado",
+        "completo",
+    }:
+        raise HTTPException(
+            status_code=400,
+            detail="El viaje no puede iniciarse en su estado actual",
+        )
+    if nuevo_estado == "finalizado" and viaje.estado != "en_curso":
+        raise HTTPException(
+            status_code=400,
+            detail="Solo un viaje en curso puede finalizarse",
+        )
+    viaje.estado = nuevo_estado
+    if nuevo_estado == "finalizado":
+        solicitudes = list(
+            db.scalars(
+                select(SolicitudViaje).where(
+                    SolicitudViaje.viaje_id == viaje.id,
+                    SolicitudViaje.estado == "aceptada",
+                )
+            )
+        )
+        for solicitud in solicitudes:
+            solicitud.estado = "finalizada"
+    try:
+        db.commit()
+        db.refresh(viaje)
+    except SQLAlchemyError:
+        db.rollback()
+        raise
+    return viaje

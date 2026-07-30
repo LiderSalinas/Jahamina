@@ -1,7 +1,7 @@
 from logging.config import fileConfig
-from sqlalchemy import engine_from_config
-from sqlalchemy import pool
+
 from alembic import context
+from sqlalchemy import engine_from_config, pool
 
 # Configuración base de Alembic
 config = context.config
@@ -12,10 +12,20 @@ if config.config_file_name is not None:
 
 # 👇 Importamos el Base y los modelos para autogenerar migraciones
 from app.core.db import Base
-from app.models import usuario, pasajero_viaje, viaje_model
+from app.core.settings import settings
+from app.models import (  # noqa: F401
+    pasajero_viaje,
+    solicitud_viaje,
+    usuario,
+    vehiculo,
+    viaje_model,
+)
 
-# 👇 Esta es la clave para que Alembic detecte los modelos
 target_metadata = Base.metadata
+config.set_main_option(
+    "sqlalchemy.url",
+    settings.database_url.replace("%", "%%"),
+)
 
 
 # Migración offline (sin conexión activa)

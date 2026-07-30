@@ -12,3 +12,12 @@ class Usuario(Base):
 
     viajes = relationship("Viaje", back_populates="creador")
     viajes_unidos = relationship("ViajeUnido", back_populates="usuario", cascade="all, delete-orphan")
+    vehiculos = relationship(
+        "Vehiculo",
+        back_populates="propietario",
+        cascade="all, delete-orphan",
+    )
+    solicitudes_viaje = relationship(
+        "SolicitudViaje",
+        back_populates="pasajero",
+    )

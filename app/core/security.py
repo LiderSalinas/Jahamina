@@ -1,6 +1,7 @@
 import bcrypt
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core.db import get_db
@@ -52,7 +53,7 @@ def get_current_user(
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    usuario = db.query(Usuario).filter(Usuario.email == email).first()
+    usuario = db.scalar(select(Usuario).where(Usuario.email == email))
     if usuario is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

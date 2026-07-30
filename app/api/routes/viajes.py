@@ -1,16 +1,22 @@
-from fastapi import APIRouter, Depends
-from sqlalchemy.orm import Session
 from typing import List
+
+from fastapi import APIRouter, Depends, status
+from sqlalchemy.orm import Session
 
 from app.core.db import get_db
 from app.core.security import get_current_user
 from app.models.usuario import Usuario
 from app.services import viaje_service
-from app.schemas.viaje_schema import ViajeCreate, ViajeResponse, ViajeUnidoResponse
+from app.schemas.solicitud_schema import SolicitudResponse
+from app.schemas.viaje_schema import ViajeCreate, ViajeResponse
 
 router = APIRouter()
 
-@router.post("/", response_model=ViajeResponse)
+@router.post(
+    "/",
+    response_model=ViajeResponse,
+    status_code=status.HTTP_201_CREATED,
+)
 def crear_viaje(
     viaje_data: ViajeCreate,
     db: Session = Depends(get_db),
@@ -40,7 +46,12 @@ def cancelar_viaje(
 ):
     return viaje_service.cancelar_viaje(db, viaje_id, usuario.id)
 
-@router.put("/unirse/{viaje_id}", response_model=ViajeUnidoResponse)
+@router.put(
+    "/unirse/{viaje_id}",
+    response_model=SolicitudResponse,
+    status_code=status.HTTP_201_CREATED,
+    deprecated=True,
+)
 def unirse_a_viaje(
     viaje_id: int,
     db: Session = Depends(get_db),
@@ -54,3 +65,31 @@ def ver_viajes_unidos(
     usuario: Usuario = Depends(get_current_user)
 ):
     return viaje_service.obtener_viajes_unidos(db, usuario.id)
+
+
+@router.patch("/{viaje_id}/iniciar", response_model=ViajeResponse)
+def iniciar_viaje(
+    viaje_id: int,
+    db: Session = Depends(get_db),
+    usuario: Usuario = Depends(get_current_user),
+):
+    return viaje_service.cambiar_estado_viaje(
+        db,
+        viaje_id,
+        usuario.id,
+        "en_curso",
+    )
+
+
+@router.patch("/{viaje_id}/finalizar", response_model=ViajeResponse)
+def finalizar_viaje(
+    viaje_id: int,
+    db: Session = Depends(get_db),
+    usuario: Usuario = Depends(get_current_user),
+):
+    return viaje_service.cambiar_estado_viaje(
+        db,
+        viaje_id,
+        usuario.id,
+        "finalizado",
+    )
