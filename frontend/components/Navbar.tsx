@@ -1,11 +1,30 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useState } from "react";
 
 import { useAuth } from "@/components/AuthProvider";
+import { UnreadBadge } from "@/components/chat/UnreadBadge";
+import { api } from "@/lib/api";
+import type { UnreadSummary } from "@/lib/types";
 
 export function Navbar() {
-  const { user, loading, logout } = useAuth();
+  const { user, token, loading, logout } = useAuth();
+  const [unread, setUnread] = useState<UnreadSummary>({
+    total: 0,
+    conversaciones: [],
+  });
+  useEffect(() => {
+    if (!token) return;
+    const refresh = () => api.unreadChats(token).then(setUnread).catch(() => undefined);
+    refresh();
+    const timer = window.setInterval(refresh, 10000);
+    window.addEventListener("jahamina:unread-changed", refresh);
+    return () => {
+      window.clearInterval(timer);
+      window.removeEventListener("jahamina:unread-changed", refresh);
+    };
+  }, [token]);
   return (
     <header className="border-b border-emerald-900/10 bg-white/90 backdrop-blur">
       <nav className="container flex min-h-16 items-center justify-between gap-4">
@@ -17,7 +36,7 @@ export function Navbar() {
             <>
               <Link href="/viajes">Viajes</Link>
               <Link href="/vehiculos">Vehículos</Link>
-              <Link href="/reservas">Reservas</Link>
+              <Link className="nav-with-badge" href={unread.conversaciones[0] ? `/reservas/${unread.conversaciones[0].solicitud_id}` : "/reservas"}>Reservas<UnreadBadge count={token ? unread.total : 0} /></Link>
               <Link href="/mis-viajes">Mis viajes</Link>
               <Link href="/perfil">Perfil</Link>
               <button className="button-secondary" onClick={logout} type="button">

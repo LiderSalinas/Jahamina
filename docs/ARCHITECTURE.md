@@ -66,3 +66,12 @@ incompatibles anteriores están documentados en
 
 La aplicación no ejecuta `create_all` al iniciar; el despliegue debe ejecutar
 `alembic upgrade head` antes de Uvicorn.
+
+## Chat en tiempo real
+
+`Conversacion` enlaza de forma única una reserva aceptada y `Mensaje` conserva
+el historial en PostgreSQL. La autorización se deriva siempre del conductor y
+pasajero persistidos. Redis almacena tickets efímeros, rate limiting y Pub/Sub
+entre instancias. Si Redis falla, el historial continúa disponible, pero los
+tickets y el tiempo real fallan cerrados. `20260730_0003` agrega las tablas e
+índices. GPS y mapas no forman parte de esta fase.

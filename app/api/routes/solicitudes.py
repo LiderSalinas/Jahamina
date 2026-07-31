@@ -4,7 +4,11 @@ from sqlalchemy.orm import Session
 from app.core.db import get_db
 from app.core.security import get_current_user
 from app.models.usuario import Usuario
-from app.schemas.solicitud_schema import SolicitudCreate, SolicitudResponse
+from app.schemas.solicitud_schema import (
+    ReservaRelacionadaResponse,
+    SolicitudCreate,
+    SolicitudResponse,
+)
 from app.services import solicitud_service
 
 router = APIRouter()
@@ -30,6 +34,17 @@ def listar_mis_solicitudes(
     usuario: Usuario = Depends(get_current_user),
 ):
     return solicitud_service.listar_mias(db, usuario.id)
+
+
+@router.get(
+    "/reservas/relacionadas",
+    response_model=list[ReservaRelacionadaResponse],
+)
+def listar_reservas_relacionadas(
+    db: Session = Depends(get_db),
+    usuario: Usuario = Depends(get_current_user),
+):
+    return solicitud_service.listar_relacionadas(db, usuario.id)
 
 
 @router.get(

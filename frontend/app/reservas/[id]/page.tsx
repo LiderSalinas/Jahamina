@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 
 import { useAuth } from "@/components/AuthProvider";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { ChatPanel } from "@/components/chat/ChatPanel";
 import { api, ApiError } from "@/lib/api";
 import type { TripRequest } from "@/lib/types";
 
@@ -41,7 +42,7 @@ export default function ReservationDetailPage() {
             </dl>
           </div>
           <div className="mt-6 grid gap-6 md:grid-cols-2">
-            <section className="status-card"><p className="eyebrow">Próxima fase</p><h2 className="mt-2 text-xl font-black">Chat del viaje</h2><p className="mt-3 text-slate-600">Este espacio mostrará la conversación segura entre conductor y pasajero cuando la reserva esté aceptada.</p></section>
+            <ChatPanel reservationId={request.id} />
             <section className="status-card"><p className="eyebrow">Próxima fase</p><h2 className="mt-2 text-xl font-black">Ubicación en tiempo real</h2><p className="mt-3 text-slate-600">Este espacio alojará el mapa, permisos de ubicación y estado de seguimiento durante el viaje.</p></section>
           </div>
         </>}

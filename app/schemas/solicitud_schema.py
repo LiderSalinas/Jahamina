@@ -1,5 +1,6 @@
 from datetime import datetime
 from enum import StrEnum
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -45,3 +46,19 @@ class SolicitudResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
     responded_at: datetime | None
+
+
+class ReservaRelacionadaResponse(BaseModel):
+    reserva_id: int
+    viaje_id: int
+    origen: str
+    destino: str
+    fecha: datetime
+    estado: EstadoSolicitud
+    rol: Literal["conductor", "pasajero"]
+    participante_id: int
+    participante: str
+    conversacion_id: int | None
+    ultimo_mensaje: str | None
+    no_leidos: int
+    ultima_actividad: datetime

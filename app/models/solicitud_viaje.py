@@ -76,3 +76,6 @@ class SolicitudViaje(Base):
 
     viaje = relationship("Viaje", back_populates="solicitudes")
     pasajero = relationship("Usuario", back_populates="solicitudes_viaje")
+    conversacion = relationship(
+        "Conversacion", back_populates="solicitud", uselist=False
+    )

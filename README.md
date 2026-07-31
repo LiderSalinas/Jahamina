@@ -11,6 +11,7 @@ viajes y participaciones conservando el historial mediante cancelación lógica.
 - Consulta del perfil autenticado.
 - Creación, listado y cancelación lógica de viajes.
 - Vehículos propios, cupos y aprobación de solicitudes.
+- Chat privado en tiempo real para reservas aceptadas.
 - Validación de fechas, ubicaciones y permisos.
 - Swagger, healthcheck, migraciones Alembic y pruebas automatizadas.
 
@@ -50,6 +51,7 @@ JWT_SECRET_KEY=
 JWT_ALGORITHM=HS256
 ACCESS_TOKEN_EXPIRE_MINUTES=30
 CORS_ORIGINS=http://localhost:3000
+REDIS_URL=redis://localhost:6379/0
 ```
 
 Usa una clave JWT larga y aleatoria. Nunca versiones `.env`.
@@ -160,6 +162,11 @@ En Swagger, usa **Authorize** con el email en `username` y la contraseña.
 | PATCH | `/solicitudes/{id}/aceptar` | JWT |
 | PATCH | `/solicitudes/{id}/rechazar` | JWT |
 | PATCH | `/solicitudes/{id}/cancelar` | JWT |
+| GET | `/reservas/relacionadas` | JWT |
+| GET | `/reservas/{id}/conversacion` | JWT |
+| GET/POST | `/conversaciones/{id}/mensajes` | JWT |
+| POST | `/conversaciones/{id}/ws-ticket` | JWT |
+| WS | `/ws/chat?ticket=...` | Ticket efímero |
 
 El contrato completo está en [docs/API.md](docs/API.md).
 
@@ -202,6 +209,8 @@ Invoke-RestMethod -Method Post -Uri http://localhost:8000/viajes/ `
 - Los cupos respetan la capacidad del vehículo.
 - El lugar se reserva cuando el conductor acepta la solicitud.
 - Cancelar una reserva aceptada devuelve el cupo antes del inicio.
+- Solo conductor y pasajero acceden al chat; al cerrar viaje o reserva el
+  historial sigue visible y la escritura queda deshabilitada.
 
 ## Estructura
 
@@ -220,7 +229,7 @@ frontend/       Aplicación Next.js
 
 ## Problemas conocidos
 
-- El MVP no gestiona precios, chat ni seguimiento GPS.
+- El MVP no gestiona precios, archivos en chat ni seguimiento GPS.
 - La suite necesita una instancia PostgreSQL de desarrollo accesible.
 
 ## Roadmap

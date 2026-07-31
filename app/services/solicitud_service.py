@@ -1,13 +1,17 @@
 from datetime import datetime, timezone
 
 from fastapi import HTTPException
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
+from app.models.mensaje import Mensaje
 from app.models.solicitud_viaje import SolicitudViaje
 from app.models.viaje_model import Viaje
-from app.schemas.solicitud_schema import SolicitudCreate
+from app.schemas.solicitud_schema import (
+    ReservaRelacionadaResponse,
+    SolicitudCreate,
+)
 
 
 def crear_solicitud(
@@ -62,6 +66,77 @@ def listar_mias(db: Session, pasajero_id: int) -> list[SolicitudViaje]:
     )
 
 
+def listar_relacionadas(
+    db: Session, usuario_id: int
+) -> list[ReservaRelacionadaResponse]:
+    solicitudes = list(
+        db.scalars(
+            select(SolicitudViaje)
+            .join(SolicitudViaje.viaje)
+            .options(
+                joinedload(SolicitudViaje.viaje).joinedload(Viaje.creador),
+                joinedload(SolicitudViaje.pasajero),
+                joinedload(SolicitudViaje.conversacion),
+            )
+            .where(
+                (SolicitudViaje.pasajero_id == usuario_id)
+                | (Viaje.creador_id == usuario_id)
+            )
+        )
+    )
+    relacionadas: list[ReservaRelacionadaResponse] = []
+    for solicitud in solicitudes:
+        viaje = solicitud.viaje
+        es_pasajero = solicitud.pasajero_id == usuario_id
+        participante = viaje.creador if es_pasajero else solicitud.pasajero
+        conversacion = solicitud.conversacion
+        ultimo_mensaje = None
+        no_leidos = 0
+        if conversacion:
+            ultimo_mensaje = db.scalar(
+                select(Mensaje.contenido)
+                .where(
+                    Mensaje.conversacion_id == conversacion.id,
+                    Mensaje.eliminado.is_(False),
+                )
+                .order_by(Mensaje.id.desc())
+                .limit(1)
+            )
+            no_leidos = db.scalar(
+                select(func.count(Mensaje.id)).where(
+                    Mensaje.conversacion_id == conversacion.id,
+                    Mensaje.remitente_id.is_not(None),
+                    Mensaje.remitente_id != usuario_id,
+                    Mensaje.leido_en.is_(None),
+                    Mensaje.eliminado.is_(False),
+                )
+            ) or 0
+        relacionadas.append(
+            ReservaRelacionadaResponse(
+                reserva_id=solicitud.id,
+                viaje_id=viaje.id,
+                origen=viaje.origen,
+                destino=viaje.destino,
+                fecha=viaje.fecha,
+                estado=solicitud.estado,
+                rol="pasajero" if es_pasajero else "conductor",
+                participante_id=participante.id,
+                participante=participante.nombre,
+                conversacion_id=conversacion.id if conversacion else None,
+                ultimo_mensaje=ultimo_mensaje,
+                no_leidos=no_leidos,
+                ultima_actividad=(
+                    conversacion.ultimo_mensaje_en
+                    if conversacion and conversacion.ultimo_mensaje_en
+                    else solicitud.updated_at
+                ),
+            )
+        )
+    return sorted(
+        relacionadas, key=lambda item: item.ultima_actividad, reverse=True
+    )
+
+
 def listar_del_viaje(
     db: Session,
     viaje_id: int,
@@ -96,10 +171,7 @@ def obtener_solicitud(
         solicitud.pasajero_id != usuario_id
         and solicitud.viaje.creador_id != usuario_id
     ):
-        raise HTTPException(
-            status_code=403,
-            detail="No tienes permiso para ver esta solicitud",
-        )
+        raise HTTPException(status_code=404, detail="Solicitud no encontrada")
     return solicitud
 
 
@@ -143,6 +215,9 @@ def responder_solicitud(
         viaje.cupos_disponibles -= 1
         if viaje.cupos_disponibles == 0:
             viaje.estado = "completo"
+        from app.services.chat_service import create_or_get_conversation
+
+        create_or_get_conversation(db, solicitud)
     else:
         solicitud.estado = "rechazada"
     solicitud.responded_at = datetime.now(timezone.utc)
@@ -194,6 +269,14 @@ def cancelar_solicitud(
         if viaje.estado == "completo":
             viaje.estado = "publicado"
     solicitud.estado = "cancelada"
+    from app.services.chat_service import close_with_system_message
+
+    close_with_system_message(
+        db,
+        solicitud,
+        "La reserva fue cancelada. El historial queda disponible.",
+        f"system:request:{solicitud.id}:cancelled",
+    )
     try:
         db.commit()
         db.refresh(solicitud)

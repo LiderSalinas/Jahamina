@@ -21,3 +21,4 @@ class Usuario(Base):
         "SolicitudViaje",
         back_populates="pasajero",
     )
+    mensajes_chat = relationship("Mensaje", back_populates="remitente")

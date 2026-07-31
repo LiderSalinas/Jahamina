@@ -4,6 +4,11 @@ import type {
   TripRequest,
   User,
   Vehicle,
+  ChatMessage,
+  ChatMessagePage,
+  Conversation,
+  UnreadSummary,
+  RelatedReservation,
 } from "@/lib/types";
 
 const API_URL = (
@@ -177,6 +182,9 @@ export const api = {
   myRequests(token: string): Promise<TripRequest[]> {
     return request<TripRequest[]>("/solicitudes/mias", {}, token);
   },
+  relatedReservations(token: string): Promise<RelatedReservation[]> {
+    return request<RelatedReservation[]>("/reservas/relacionadas", {}, token);
+  },
   tripRequests(tripId: number, token: string): Promise<TripRequest[]> {
     return request<TripRequest[]>(
       `/viajes/${tripId}/solicitudes`,
@@ -207,5 +215,25 @@ export const api = {
       { method: "PATCH" },
       token,
     );
+  },
+  conversationByReservation(id: number, token: string): Promise<Conversation> {
+    return request<Conversation>(`/reservas/${id}/conversacion`, {}, token);
+  },
+  chatMessages(id: number, token: string, beforeId?: number | null): Promise<ChatMessagePage> {
+    const query = beforeId ? `?before_id=${beforeId}&limit=30` : "?limit=30";
+    return request<ChatMessagePage>(`/conversaciones/${id}/mensajes${query}`, {}, token);
+  },
+  sendChatMessage(id: number, payload: { contenido: string; client_message_id: string }, token: string): Promise<ChatMessage> {
+    return request<ChatMessage>(`/conversaciones/${id}/mensajes`, { method: "POST", body: JSON.stringify(payload) }, token);
+  },
+  markChatRead(id: number, token: string): Promise<unknown> {
+    return request(`/conversaciones/${id}/leido`, { method: "PATCH" }, token);
+  },
+  unreadChats(token: string): Promise<UnreadSummary> {
+    return request<UnreadSummary>("/conversaciones/no-leidos", {}, token);
+  },
+  async chatWebSocketUrl(id: number, token: string): Promise<string> {
+    const response = await request<{ ticket: string }>(`/conversaciones/${id}/ws-ticket`, { method: "POST" }, token);
+    return `${API_URL.replace(/^http/, "ws")}/ws/chat?ticket=${encodeURIComponent(response.ticket)}`;
   },
 };

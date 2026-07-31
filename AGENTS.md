@@ -43,6 +43,8 @@ No reestructurar el proyecto ni renombrar carpetas sin una necesidad comprobada.
 - Un pasajero solicita lugar y el conductor acepta o rechaza.
 - Aceptar bloquea el viaje y descuenta un cupo sin sobreventa.
 - Las solicitudes conservan historial y no se borran físicamente.
+- El chat existe solo para reservas aceptadas y es privado para sus dos
+  participantes; los tickets WebSocket son breves y de un solo uso.
 
 ## Comandos
 

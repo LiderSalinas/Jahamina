@@ -93,6 +93,14 @@ def cancelar_viaje(db: Session, viaje_id: int, usuario_id: int):
     )
     for solicitud in solicitudes:
         solicitud.estado = "cancelada"
+        from app.services.chat_service import close_with_system_message
+
+        close_with_system_message(
+            db,
+            solicitud,
+            "El viaje fue cancelado. El chat quedó cerrado.",
+            f"system:trip:{viaje.id}:cancelled:request:{solicitud.id}",
+        )
     try:
         db.commit()
         db.refresh(viaje)
@@ -156,6 +164,17 @@ def cambiar_estado_viaje(
             detail="Solo un viaje en curso puede finalizarse",
         )
     viaje.estado = nuevo_estado
+    from app.services.chat_service import add_system_message
+
+    for solicitud in viaje.solicitudes:
+        if solicitud.conversacion and solicitud.estado == "aceptada":
+            if nuevo_estado == "en_curso":
+                add_system_message(
+                    db,
+                    solicitud.conversacion,
+                    "El viaje ha comenzado.",
+                    f"system:trip:{viaje.id}:started:request:{solicitud.id}",
+                )
     if nuevo_estado == "finalizado":
         solicitudes = list(
             db.scalars(
@@ -166,6 +185,14 @@ def cambiar_estado_viaje(
             )
         )
         for solicitud in solicitudes:
+            from app.services.chat_service import close_with_system_message
+
+            close_with_system_message(
+                db,
+                solicitud,
+                "El viaje finalizó. El historial queda disponible.",
+                f"system:trip:{viaje.id}:finished:request:{solicitud.id}",
+            )
             solicitud.estado = "finalizada"
     try:
         db.commit()

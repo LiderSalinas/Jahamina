@@ -135,6 +135,8 @@ espacios ni guiones.
 ## Solicitudes y reservas
 
 - `POST /viajes/{viaje_id}/solicitudes`: solicitud pendiente.
+- `GET /reservas/relacionadas`: reservas como pasajero y conductor, con
+  conversación, participante, última actividad y no leídos.
 - `GET /solicitudes/mias`: historial del pasajero.
 - `GET /viajes/{viaje_id}/solicitudes`: panel privado del conductor.
 - `GET /solicitudes/{id}`: detalle para sus participantes.
@@ -144,3 +146,22 @@ espacios ni guiones.
 
 Estados: `pendiente`, `aceptada`, `rechazada`, `cancelada`, `finalizada`.
 `/viajes/unirse/{id}` está deprecado y ahora crea una solicitud pendiente.
+
+## Chat
+
+Todas las rutas son privadas y responden 404 a usuarios ajenos para no revelar
+conversaciones. El chat se crea al aceptar una reserva.
+
+- `GET /reservas/{id}/conversacion`: resumen, participante, viaje y no leídos.
+- `GET /conversaciones/{id}`: detalle autorizado.
+- `GET /conversaciones/{id}/mensajes?before_id=&limit=`: historial por cursor.
+- `POST /conversaciones/{id}/mensajes`: respaldo REST con `contenido` y
+  `client_message_id` opcional.
+- `PATCH /conversaciones/{id}/leido`: marca mensajes ajenos como leídos.
+- `GET /conversaciones/no-leidos`: total y desglose por conversación.
+- `POST /conversaciones/{id}/ws-ticket`: ticket aleatorio de un solo uso.
+- `WS /ws/chat?ticket=...`: tiempo real sin JWT permanente en URL.
+
+Eventos cliente: `message.send`, `message.read`, `typing.start`, `typing.stop`,
+`ping`. Eventos servidor: `connected`, `message.created`, `message.read`,
+`typing.started`, `typing.stopped`, `error`, `pong`.

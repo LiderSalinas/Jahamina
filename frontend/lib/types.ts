@@ -62,3 +62,61 @@ export interface TripRequest {
   updated_at: string;
   responded_at: string | null;
 }
+
+export interface ChatMessage {
+  id: number;
+  conversacion_id: number;
+  remitente_id: number | null;
+  contenido: string;
+  tipo: "texto" | "sistema";
+  creado_en: string;
+  editado_en: string | null;
+  leido_en: string | null;
+  eliminado: boolean;
+  client_message_id: string | null;
+}
+
+export interface ChatMessagePage {
+  items: ChatMessage[];
+  next_cursor: number | null;
+}
+
+export interface Conversation {
+  id: number;
+  solicitud_id: number;
+  creada_en: string;
+  actualizada_en: string;
+  ultimo_mensaje_en: string | null;
+  cerrada_en: string | null;
+  activa: boolean;
+  puede_escribir: boolean;
+  no_leidos: number;
+  participante: string;
+  viaje_id: number;
+  origen: string;
+  destino: string;
+  estado_viaje: string;
+  estado_reserva: string;
+  ultimo_mensaje: string | null;
+}
+
+export interface UnreadSummary {
+  total: number;
+  conversaciones: { conversacion_id: number; solicitud_id: number; cantidad: number }[];
+}
+
+export interface RelatedReservation {
+  reserva_id: number;
+  viaje_id: number;
+  origen: string;
+  destino: string;
+  fecha: string;
+  estado: TripRequest["estado"];
+  rol: "conductor" | "pasajero";
+  participante_id: number;
+  participante: string;
+  conversacion_id: number | null;
+  ultimo_mensaje: string | null;
+  no_leidos: number;
+  ultima_actividad: string;
+}

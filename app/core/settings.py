@@ -15,6 +15,14 @@ class Settings(BaseSettings):
     jwt_algorithm: str = "HS256"
     access_token_expire_minutes: int = 30
     cors_origins: str = "http://localhost:3000"
+    redis_url: str = "redis://localhost:6379/0"
+    ws_ticket_expire_seconds: int = 60
+    chat_max_message_length: int = 1000
+    chat_rate_limit_messages: int = 10
+    chat_rate_limit_window_seconds: int = 10
+    chat_typing_rate_limit_events: int = 8
+    chat_max_payload_bytes: int = 4096
+    chat_max_connections_per_user: int = 3
 
     model_config = SettingsConfigDict(
         env_file=".env",

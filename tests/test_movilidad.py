@@ -9,6 +9,8 @@ from fastapi.testclient import TestClient
 from sqlalchemy import delete, select
 
 from app.core.db import SessionLocal
+from app.models.conversacion import Conversacion
+from app.models.mensaje import Mensaje
 from app.models.solicitud_viaje import SolicitudViaje
 from app.models.usuario import Usuario
 from app.models.vehiculo import Vehiculo
@@ -191,7 +193,7 @@ def test_solicitudes_aceptacion_cancelacion_y_cupos(
     assert client.get(
         f"/solicitudes/{request_id}",
         headers=outsider,
-    ).status_code == 403
+    ).status_code == 404
     assert client.patch(
         f"/solicitudes/{request_id}/aceptar",
         headers=outsider,
@@ -363,6 +365,24 @@ def test_aceptacion_concurrente_no_sobrevende() -> None:
             assert accepted_count == 1
     finally:
         with SessionLocal() as db:
+            conversation_ids = list(
+                db.scalars(
+                    select(Conversacion.id).where(
+                        Conversacion.solicitud_id.in_(created_ids["requests"])
+                    )
+                )
+            )
+            if conversation_ids:
+                db.execute(
+                    delete(Mensaje).where(
+                        Mensaje.conversacion_id.in_(conversation_ids)
+                    )
+                )
+                db.execute(
+                    delete(Conversacion).where(
+                        Conversacion.id.in_(conversation_ids)
+                    )
+                )
             db.execute(
                 delete(SolicitudViaje).where(
                     SolicitudViaje.id.in_(created_ids["requests"])

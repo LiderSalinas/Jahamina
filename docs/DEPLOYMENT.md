@@ -31,6 +31,11 @@ JWT_ALGORITHM=HS256
 ACCESS_TOKEN_EXPIRE_MINUTES=30
 CORS_ORIGINS=https://frontend.example
 PORT=8000
+REDIS_URL=redis://host:6379/0
+WS_TICKET_EXPIRE_SECONDS=60
+CHAT_MAX_MESSAGE_LENGTH=1000
+CHAT_RATE_LIMIT_MESSAGES=10
+CHAT_RATE_LIMIT_WINDOW_SECONDS=10
 ```
 
 `CORS_ORIGINS` acepta varios orígenes separados por coma. Genera
@@ -102,5 +107,7 @@ NEXT_PUBLIC_API_URL=https://api.example
 - Habilitar logs centralizados sin tokens, hashes ni contraseñas.
 - Añadir rate limiting al login en el perímetro o aplicación.
 - Evaluar cookies HttpOnly en lugar de `localStorage` para sesiones web.
+- Usar Redis administrado con TLS y red privada; comprobar tickets, Pub/Sub y
+  reconexión WebSocket en todas las réplicas.
 - Ejecutar auditorías de dependencias y pruebas en CI.
 - Configurar monitoreo de `/health`, TLS y alertas.

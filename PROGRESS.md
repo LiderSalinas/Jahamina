@@ -197,3 +197,21 @@ Estado: completado y validado.
 - Migración validada en una base temporal limpia con upgrade, downgrade y
   nuevo upgrade; la base principal no fue degradada.
 - Frontend validado con ESLint y build de producción de Next.js.
+
+## Chat seguro en tiempo real
+
+Estado: completado y validado.
+
+- Conversaciones únicas por reserva y mensajes persistidos en PostgreSQL.
+- Creación automática y mensaje de sistema al aceptar.
+- Historial por cursor, respaldo REST, lectura y contadores de no leídos.
+- Tickets WebSocket de un solo uso en Redis, Pub/Sub y rate limiting.
+- WebSocket privado con mensajes, lectura, typing, ping/pong y reconexión.
+- Escritura cerrada al cancelar/finalizar, con historial conservado.
+- Frontend responsive con estados de entrega, reintento y no leídos.
+- GPS, mapas, adjuntos y notificaciones push permanecen fuera de alcance.
+- Suite ampliada a 41 pruebas aprobadas.
+- Migración `20260730_0003` validada con upgrade/downgrade en base temporal.
+- Redis 7.4 saludable, Compose válido, frontend con lint y build correctos.
+- Reservas relacionadas unificadas para conductor y pasajero, con actividad,
+  conversación y no leídos coherentes entre listado, detalle y navbar.

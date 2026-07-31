@@ -16,6 +16,18 @@ services:
       timeout: 5s
       retries: 10
 
+  redis:
+    image: redis:7.4-alpine
+    restart: unless-stopped
+    command: redis-server --appendonly no
+    ports:
+      - "${REDIS_EXTERNAL_PORT:-6379}:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
   jahamina-api:
     build:
       context: .
@@ -23,6 +35,8 @@ services:
     restart: unless-stopped
     depends_on:
       db:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
@@ -34,6 +48,14 @@ services:
       JWT_ALGORITHM: ${JWT_ALGORITHM:-HS256}
       ACCESS_TOKEN_EXPIRE_MINUTES: ${ACCESS_TOKEN_EXPIRE_MINUTES:-30}
       CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000}
+      REDIS_URL: redis://redis:6379/0
+      WS_TICKET_EXPIRE_SECONDS: ${WS_TICKET_EXPIRE_SECONDS:-60}
+      CHAT_MAX_MESSAGE_LENGTH: ${CHAT_MAX_MESSAGE_LENGTH:-1000}
+      CHAT_RATE_LIMIT_MESSAGES: ${CHAT_RATE_LIMIT_MESSAGES:-10}
+      CHAT_RATE_LIMIT_WINDOW_SECONDS: ${CHAT_RATE_LIMIT_WINDOW_SECONDS:-10}
+      CHAT_TYPING_RATE_LIMIT_EVENTS: ${CHAT_TYPING_RATE_LIMIT_EVENTS:-8}
+      CHAT_MAX_PAYLOAD_BYTES: ${CHAT_MAX_PAYLOAD_BYTES:-4096}
+      CHAT_MAX_CONNECTIONS_PER_USER: ${CHAT_MAX_CONNECTIONS_PER_USER:-3}
     ports:
       - "${API_PORT:-8000}:8000"
     volumes:
