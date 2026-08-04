@@ -1,5 +1,14 @@
 # Progreso Jahamina v1.0
 
+## 2026-08-03 — Primera integración real de hoja de ruta
+
+- `/reservas/{id}` consume un contrato consolidado de lectura.
+- Cronología y paradas se derivan de reserva, viaje y punto de encuentro; no se añadieron migraciones.
+- La pantalla real no expone controles de laboratorio, datos demo, ETA ni acciones de transición.
+- Chat y punto de encuentro permanecen disponibles.
+- Conductor y pasajero vinculado acceden; terceros reciben 404.
+- Validación: 55 pruebas, Alembic check, ESLint y build aprobados.
+
 ## Fase 0 — Inventario y plan
 
 Estado: completada.

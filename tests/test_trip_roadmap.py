@@ -26,10 +26,35 @@ def test_both_participants_get_consolidated_roadmap_and_outsider_is_hidden(clien
         assert body["reserva"]["rol_actual"] == role
         assert body["viaje"]["id"] == trip["id"]
         assert body["conductor"]["nombre"] == "Rubén"
-        assert body["pasajero"]["nombre"] == "Ramón"
+        assert body["pasajero_actual"]["nombre"] == "Ramón"
+        assert body["vehiculo"]["marca"] == "Toyota"
+        assert body["ocupacion"] == {"ocupados": 1, "totales": 3, "pendientes": 0}
+        assert [stop["tipo"] for stop in body["paradas"]] == ["origen", "destino"]
+        assert body["hoja_ruta"][0]["id"] == "reserva-confirmada"
+        assert body["hoja_ruta"][0]["estado"] == "completado"
         assert body["eventos"][0]["tipo"] == "reserva_confirmada"
         assert "hashed_password" not in response.text
+        assert "email" not in response.text
     assert client.get(f"/reservas/{request['id']}/hoja-ruta", headers=outsider).status_code == 404
+    assert client.get("/reservas/999999/hoja-ruta", headers=driver).status_code == 404
+
+
+def test_roadmap_derives_meeting_point_and_cancelled_privacy(client, auth_headers, create_vehicle):
+    driver, passenger, _trip, request = _accepted(client, auth_headers, create_vehicle, "meeting")
+    reservation_id = request["id"]
+    proposed = client.post(f"/reservas/{reservation_id}/punto-encuentro/proponer", headers=driver, json={"texto":"Terminal de San Miguel", "latitude":-25.30, "longitude":-57.60})
+    assert proposed.status_code == 200
+    assert client.patch(f"/reservas/{reservation_id}/punto-encuentro/confirmar", headers=passenger).status_code == 200
+    body = client.get(f"/reservas/{reservation_id}/hoja-ruta", headers=passenger).json()
+    assert body["punto_encuentro"]["estado"] == "confirmado"
+    assert body["punto_encuentro"]["zona_general"] == "Terminal de San Miguel"
+    assert [stop["tipo"] for stop in body["paradas"]] == ["origen", "recogida", "destino"]
+    assert any(step["id"] == "punto-confirmado" and step["estado"] == "completado" for step in body["hoja_ruta"])
+    assert client.patch(f"/solicitudes/{reservation_id}/cancelar", headers=passenger).status_code == 200
+    cancelled = client.get(f"/reservas/{reservation_id}/hoja-ruta", headers=driver)
+    assert cancelled.status_code == 200
+    assert cancelled.json()["punto_encuentro"]["latitud"] is None
+    assert cancelled.json()["permisos"]["puede_ver_punto_exacto"] is False
 
 
 def test_pending_reservation_does_not_expose_roadmap(client, auth_headers, create_vehicle):

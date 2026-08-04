@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 
 from fastapi import HTTPException
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session, joinedload
 
@@ -10,7 +10,8 @@ from app.models.parada_viaje import ParadaViaje
 from app.models.solicitud_viaje import SolicitudViaje
 from app.models.viaje_model import Viaje
 from app.schemas.roadmap_schema import (
-    NextAction, PassengerStatus, RoadmapEvent, RoadmapMeetingPoint,
+    DerivedRoadmapStep, NextAction, PassengerStatus, RoadmapEvent, RoadmapMeetingPoint,
+    RoadmapOccupancy,
     RoadmapPermissions, RoadmapPersona, RoadmapReserva, RoadmapResponse,
     RoadmapStop, RoadmapVehiculo, RoadmapViaje,
 )
@@ -99,6 +100,24 @@ def _synthetic_stops(request: SolicitudViaje) -> list[RoadmapStop]:
     return stops
 
 
+def _derived_timeline(request: SolicitudViaje) -> list[DerivedRoadmapStep]:
+    cancelled = request.estado == "cancelada" or request.viaje.estado == "cancelado"
+    finished = request.estado == "finalizada" or request.viaje.estado == "finalizado"
+    meeting_proposed = bool(request.punto_encuentro_propuesto)
+    meeting_confirmed = request.estado_punto_encuentro == "confirmado"
+    moving = request.viaje.estado in {"conductor_en_camino", "conductor_en_punto", "abordaje", "en_curso", "pausado", "finalizado"}
+    raw = [
+        ("reserva-confirmada", "Reserva confirmada", "El conductor aceptó tu lugar.", True, request.responded_at or request.created_at),
+        ("punto-propuesto", "Punto de encuentro propuesto", request.punto_encuentro_propuesto or "Todavía no fue definido.", meeting_proposed, request.propuesto_en),
+        ("punto-confirmado", "Punto de encuentro confirmado", "Confirmado por ambos participantes." if meeting_confirmed else "Pendiente de confirmación.", meeting_confirmed, request.punto_encuentro_actualizado_en if meeting_confirmed else None),
+        ("viaje-programado", "Viaje programado", f"Salida desde {request.viaje.origen}.", True, request.viaje.fecha),
+        ("conductor-en-camino", "Conductor en camino", "El estado del viaje indica que el conductor está en camino.", moving, request.viaje.updated_at if moving else None),
+        ("viaje-finalizado", "Viaje finalizado", f"Destino: {request.viaje.destino}.", finished, request.viaje.updated_at if finished else None),
+    ]
+    current_index = next((index for index, item in enumerate(raw) if not item[3]), len(raw) - 1)
+    return [DerivedRoadmapStep(id=key, titulo=title, descripcion=description, estado="cancelado" if cancelled and index >= current_index else "completado" if done else "actual" if index == current_index else "pendiente", timestamp=timestamp, orden=index + 1) for index, (key, title, description, done, timestamp) in enumerate(raw)]
+
+
 def _next_action(request: SolicitudViaje, role: str) -> NextAction:
     trip = request.viaje
     if trip.estado in {"finalizado", "cancelado"} or request.estado == "cancelada":
@@ -123,18 +142,20 @@ def get_roadmap(db: Session, reservation_id: int, user_id: int) -> RoadmapRespon
     request = _reservation(db, reservation_id, user_id)
     trip = request.viaje
     role = "conductor" if trip.creador_id == user_id else "pasajero"
-    stored_stops = list(db.scalars(select(ParadaViaje).where(ParadaViaje.viaje_id == trip.id).order_by(ParadaViaje.orden)))
+    pending = db.scalar(select(func.count(SolicitudViaje.id)).where(SolicitudViaje.viaje_id == trip.id, SolicitudViaje.estado == "pendiente")) or 0
     events = list(db.scalars(select(EventoViaje).where(EventoViaje.viaje_id == trip.id).order_by(EventoViaje.created_at)))
     return RoadmapResponse(
-        reserva=RoadmapReserva(id=request.id, estado=request.estado, rol_actual=role),
+        reserva=RoadmapReserva(id=request.id, estado=request.estado, rol_actual=role, mensaje_inicial=request.mensaje_inicial),
         viaje=RoadmapViaje(id=trip.id, origen=trip.origen, destino=trip.destino, fecha_salida=trip.fecha, estado=trip.estado, cupos_totales=trip.cupos_totales, cupos_ocupados=trip.cupos_totales-trip.cupos_disponibles, ruta_codificada=trip.ruta_codificada),
-        conductor=RoadmapPersona(id=trip.creador.id, nombre=trip.creador.nombre), pasajero=RoadmapPersona(id=request.pasajero.id, nombre=request.pasajero.nombre),
-        vehiculo=RoadmapVehiculo(marca=trip.vehiculo.marca, modelo=trip.vehiculo.modelo, color=trip.vehiculo.color, matricula=trip.vehiculo.matricula) if trip.vehiculo else None,
-        punto_encuentro=RoadmapMeetingPoint(estado=request.estado_punto_encuentro, texto=request.punto_encuentro_propuesto, latitud=float(request.punto_encuentro_latitud) if request.punto_encuentro_latitud is not None else None, longitud=float(request.punto_encuentro_longitud) if request.punto_encuentro_longitud is not None else None),
-        paradas=[RoadmapStop.model_validate(stop) for stop in stored_stops] if stored_stops else _synthetic_stops(request),
+        conductor=RoadmapPersona(id=trip.creador.id, nombre=trip.creador.nombre), pasajero_actual=RoadmapPersona(id=request.pasajero.id, nombre=request.pasajero.nombre),
+        vehiculo=RoadmapVehiculo(id=trip.vehiculo.id, marca=trip.vehiculo.marca, modelo=trip.vehiculo.modelo, color=trip.vehiculo.color, matricula=trip.vehiculo.matricula) if trip.vehiculo else None,
+        punto_encuentro=RoadmapMeetingPoint(estado=request.estado_punto_encuentro, nombre_publico="Punto de encuentro" if request.punto_encuentro_propuesto else None, zona_general=request.punto_encuentro_propuesto, latitud=float(request.punto_encuentro_latitud) if request.estado != "cancelada" and request.punto_encuentro_latitud is not None else None, longitud=float(request.punto_encuentro_longitud) if request.estado != "cancelada" and request.punto_encuentro_longitud is not None else None),
+        paradas=_synthetic_stops(request),
+        hoja_ruta=_derived_timeline(request),
+        ocupacion=RoadmapOccupancy(ocupados=trip.cupos_totales-trip.cupos_disponibles, totales=trip.cupos_totales, pendientes=pending),
         eventos=[RoadmapEvent(id=e.id, reserva_id=e.reserva_id, tipo=e.tipo, descripcion_publica=e.descripcion_publica, metadata=e.metadata_evento, created_at=e.created_at) for e in events],
         estado_pasajero=PassengerStatus(estado=request.estado_pasajero, nombre=request.pasajero.nombre), proxima_accion=_next_action(request, role),
-        permisos=RoadmapPermissions(puede_operar_viaje=role == "conductor", puede_actualizar_estado_propio=role == "pasajero"),
+        permisos=RoadmapPermissions(puede_operar_viaje=False, puede_actualizar_estado_propio=False, puede_ver_puntos_exactos=request.estado != "cancelada", puede_ver_chat=bool(request.conversacion), puede_ver_punto_exacto=request.estado != "cancelada", puede_modificar_viaje=False),
     )
 
 

@@ -186,6 +186,12 @@ Eventos cliente: `message.send`, `message.read`, `typing.start`, `typing.stop`,
 El WebSocket emite `connected`, `location.updated`, `tracking.finished`, `error` y `pong`; acepta `location.update` y `ping`. Las rutas privadas responden 404 a terceros.
 # Hoja de ruta
 
+## Contrato consolidado de lectura
+
+`GET /reservas/{id}/hoja-ruta` reúne reserva, viaje, conductor, pasajero actual, vehículo, punto de encuentro, ocupación, cronología y paradas derivadas. Requiere JWT; devuelve 404 a terceros o IDs inexistentes y 409 para una reserva pendiente. No expone email, contraseñas, tokens ni información privada de otros pasajeros.
+
+La primera integración visual usa este endpoint solo para lectura. No interpreta las paradas como geometría vial ni presenta ETA o GPS.
+
 - `GET /reservas/{id}/hoja-ruta`: contrato consolidado para conductor o pasajero aceptado; terceros reciben 404.
 - `POST /viajes/{id}/acciones/{accion}`: acciones del conductor (`preparar-salida`, `salir`, `llegar`, `iniciar`, `pausar`, `reanudar`, `finalizar`).
 - `POST /reservas/{id}/acciones/{accion}`: acciones individuales (`listo`, `llegue`, `recoger`, `abordar`) según rol.

@@ -1,5 +1,11 @@
 # Prototipo: hoja de ruta del viaje
 
+## Primera integración real de lectura
+
+`/reservas/{id}` consume un contrato consolidado y autorizado. La cronología se deriva de timestamps reales de solicitud, respuesta, propuesta y confirmación del punto, fecha y estado del viaje. Las paradas se derivan de origen, punto de encuentro de la reserva actual y destino.
+
+La pantalla real no presenta controles de laboratorio, acciones de transición, GPS, distancias ni ETA. El recorrido SVG es esquemático y no representa calles. Chat y punto de encuentro existentes se conservan. El contrato no expone correo, hash, tokens ni información de otros pasajeros; una reserva cancelada conserva el historial pero oculta coordenadas exactas.
+
 ## Objetivo y jerarquía
 
 La pantalla responde primero estado, siguiente evento y acción; después aporta próxima parada, mapa contextual, cronología, paradas, ocupación, vehículo y chat. `/dev/hoja-ruta` usa datos simulados y no llama al backend.

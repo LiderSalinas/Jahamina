@@ -8,6 +8,7 @@ class RoadmapReserva(BaseModel):
     id: int
     estado: str
     rol_actual: Literal["conductor", "pasajero"]
+    mensaje_inicial: str | None
 
 
 class RoadmapViaje(BaseModel):
@@ -27,6 +28,7 @@ class RoadmapPersona(BaseModel):
 
 
 class RoadmapVehiculo(BaseModel):
+    id: int
     marca: str
     modelo: str
     color: str
@@ -35,7 +37,8 @@ class RoadmapVehiculo(BaseModel):
 
 class RoadmapMeetingPoint(BaseModel):
     estado: str
-    texto: str | None
+    nombre_publico: str | None
+    zona_general: str | None
     latitud: float | None
     longitud: float | None
 
@@ -65,6 +68,21 @@ class RoadmapEvent(BaseModel):
     created_at: datetime
 
 
+class DerivedRoadmapStep(BaseModel):
+    id: str
+    titulo: str
+    descripcion: str
+    estado: Literal["completado", "actual", "pendiente", "cancelado"]
+    timestamp: datetime | None
+    orden: int
+
+
+class RoadmapOccupancy(BaseModel):
+    ocupados: int
+    totales: int
+    pendientes: int
+
+
 class PassengerStatus(BaseModel):
     estado: str
     nombre: str
@@ -82,16 +100,21 @@ class RoadmapPermissions(BaseModel):
     puede_operar_viaje: bool
     puede_actualizar_estado_propio: bool
     puede_ver_puntos_exactos: bool = True
+    puede_ver_chat: bool = True
+    puede_ver_punto_exacto: bool = True
+    puede_modificar_viaje: bool = False
 
 
 class RoadmapResponse(BaseModel):
     reserva: RoadmapReserva
     viaje: RoadmapViaje
     conductor: RoadmapPersona
-    pasajero: RoadmapPersona
+    pasajero_actual: RoadmapPersona
     vehiculo: RoadmapVehiculo | None
     punto_encuentro: RoadmapMeetingPoint
     paradas: list[RoadmapStop]
+    hoja_ruta: list[DerivedRoadmapStep]
+    ocupacion: RoadmapOccupancy
     eventos: list[RoadmapEvent]
     estado_pasajero: PassengerStatus
     proxima_accion: NextAction
