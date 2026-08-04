@@ -1,0 +1,1 @@
+export function TripQuickActions() { return <nav className="roadmap-quick-actions" aria-label="Acciones secundarias"><a href="#chat-demo"><span aria-hidden="true">💬</span>Chat</a><button type="button"><span aria-hidden="true">↗</span>Abrir indicaciones</button><button type="button"><span aria-hidden="true">✓</span>Compartir estado</button></nav>; }

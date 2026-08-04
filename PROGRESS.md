@@ -240,3 +240,12 @@ Estado: completado y validado.
 - URLs WebSocket de chat y ubicación comparten configuración validada con conversión HTTP/HTTPS a WS/WSS.
 - Validación final: 51 pruebas, lint y build correctos; login LAN alcanza la API mediante POST.
 - 2026-08-03: detectado cambio DHCP de `192.168.0.107` a `192.168.1.20`; configuración LAN actualizada sin exponer secretos.
+
+## Prototipo visual de hoja de ruta
+
+- Creada demo local `/dev/hoja-ruta` con datos simulados y sin llamadas al backend.
+- Componentes reutilizables para estado, mapa local, timeline, paradas, vehículo, pasajeros, acciones y acceso al chat.
+- Variantes de rol, ciclo del viaje y disponibilidad de ubicación.
+- Diseño responsive validado con ESLint y build de producción.
+- Pendiente: validar la experiencia con usuarios antes de definir contratos o estados de backend.
+- Refinamiento: matriz única de 18 escenarios, lenguaje por rol, selección sincronizada mapa/timeline/paradas y acción no superpuesta en escritorio.
