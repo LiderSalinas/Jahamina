@@ -72,6 +72,8 @@ def confirm(db: Session, request_id: int, user_id: int) -> MeetingPointResponse:
         request.confirmado_por_pasajero_en = request.confirmado_por_pasajero_en or now
     if request.confirmado_por_conductor_en and request.confirmado_por_pasajero_en:
         request.estado_punto_encuentro = "confirmado"
+        from app.services.roadmap_service import sync_meeting_stop
+        sync_meeting_stop(db, request)
         if request.conversacion:
             add_system_message(db, request.conversacion, "El punto de encuentro quedó confirmado.", f"system:meeting:{request.id}:confirmed")
     request.punto_encuentro_actualizado_en = now

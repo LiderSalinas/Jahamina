@@ -216,8 +216,11 @@ def responder_solicitud(
         if viaje.cupos_disponibles == 0:
             viaje.estado = "completo"
         from app.services.chat_service import create_or_get_conversation
+        from app.services.roadmap_service import record_reservation_accepted
 
         create_or_get_conversation(db, solicitud)
+        db.flush()
+        record_reservation_accepted(db, solicitud, conductor_id)
     else:
         solicitud.estado = "rechazada"
     solicitud.responded_at = datetime.now(timezone.utc)
@@ -269,6 +272,7 @@ def cancelar_solicitud(
         if viaje.estado == "completo":
             viaje.estado = "publicado"
     solicitud.estado = "cancelada"
+    solicitud.estado_pasajero = "cancelado"
     from app.services.chat_service import close_with_system_message
 
     close_with_system_message(

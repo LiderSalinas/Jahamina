@@ -60,3 +60,12 @@ Cada paso presenta contexto realista: hora o `Ahora`, lugar general y última ac
 ## Pendiente de integración
 
 Validar este prototipo con usuarios y luego diseñar un adaptador entre respuestas actuales y `ScenarioDefinition`. Aún faltan contratos reales de etapas/paradas, transiciones autorizadas, timestamps, ocupación y conexión con chat/mapa; no deben implementarse antes de esa validación.
+# Integración con datos reales
+
+La página real consume un único contrato autorizado por reserva. El backend define la próxima acción, sus permisos y si requiere confirmación; el cliente no inventa transiciones. El recorrido usa paradas persistidas cuando existen y un esquema derivado de origen, punto acordado y destino para datos históricos.
+
+Transiciones del conductor: `publicado|completo|programado → preparando_salida → conductor_en_camino → conductor_en_punto → abordaje → en_curso ↔ pausado → finalizado`. Los estados heredados se mantienen como entradas compatibles.
+
+Estados del pasajero: `confirmado → listo → esperando → recogido → abordo → completado`. Cancelado y ausente son estados terminales operativos. Solo el pasajero modifica `listo/esperando`; solo el conductor confirma `recogido/abordo`.
+
+Los cambios se persisten antes de publicarse por Redis. `/ws/hoja-ruta` usa tickets temporales de un solo uso y provoca una recarga consolidada, evitando estados parciales en pantalla. GPS en vivo no forma parte de esta integración.

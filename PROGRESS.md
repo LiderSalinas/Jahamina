@@ -249,3 +249,12 @@ Estado: completado y validado.
 - Diseño responsive validado con ESLint y build de producción.
 - Pendiente: validar la experiencia con usuarios antes de definir contratos o estados de backend.
 - Refinamiento: matriz única de 18 escenarios, lenguaje por rol, selección sincronizada mapa/timeline/paradas y acción no superpuesta en escritorio.
+# 2026-08-03 — Hoja de ruta conectada
+
+- Añadido contrato consolidado `GET /reservas/{id}/hoja-ruta`, autorizado para conductor y pasajero aceptado.
+- Incorporada máquina de estados operativa de viaje y estado individual del pasajero.
+- Añadidas paradas y eventos persistentes mediante migración incremental `20260803_0005`.
+- Acciones idempotentes generan eventos y mensajes de sistema; Redis publica cambios tras el commit.
+- Añadido WebSocket `/ws/hoja-ruta` con ticket corto y de un solo uso.
+- La página real `/reservas/{id}` reutiliza el lenguaje visual del prototipo y conserva chat/punto de encuentro.
+- Validación: compileall OK, 54 pytest OK, Alembic upgrade/check OK, ESLint OK, Next build OK.

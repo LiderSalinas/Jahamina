@@ -26,7 +26,9 @@ class Viaje(Base):
         ),
         CheckConstraint(
             "estado IN "
-            "('publicado','completo','en_curso','finalizado','cancelado')",
+            "('publicado','completo','programado','preparando_salida',"
+            "'conductor_en_camino','conductor_en_punto','abordaje',"
+            "'en_curso','pausado','finalizado','cancelado')",
             name="ck_viajes_estado",
         ),
     )
@@ -76,3 +78,5 @@ class Viaje(Base):
         cascade="all, delete-orphan",
     )
     seguimientos = relationship("SeguimientoViaje", back_populates="viaje")
+    paradas = relationship("ParadaViaje", back_populates="viaje", cascade="all, delete-orphan")
+    eventos = relationship("EventoViaje", back_populates="viaje", cascade="all, delete-orphan")

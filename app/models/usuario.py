@@ -23,3 +23,4 @@ class Usuario(Base):
         foreign_keys="SolicitudViaje.pasajero_id",
     )
     mensajes_chat = relationship("Mensaje", back_populates="remitente")
+    eventos_viaje = relationship("EventoViaje", back_populates="actor")

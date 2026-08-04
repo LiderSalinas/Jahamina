@@ -101,6 +101,45 @@ async def consume_location_ticket(ticket: str) -> tuple[int, int, str] | None:
     return int(payload["user_id"]), int(payload["trip_id"]), payload["role"]
 
 
+async def create_roadmap_ticket(user_id: int, reservation_id: int, trip_id: int) -> str:
+    client = await require_redis()
+    expires_at = int(time.time()) + settings.ws_ticket_expire_seconds
+    ticket = f"{expires_at}.{secrets.token_urlsafe(32)}"
+    key = f"roadmap:ticket:{hashlib.sha256(ticket.encode()).hexdigest()}"
+    value = json.dumps({"user_id": user_id, "reservation_id": reservation_id, "trip_id": trip_id})
+    try:
+        await client.set(key, value, ex=settings.ws_ticket_expire_seconds, nx=True)
+    finally:
+        await client.aclose()
+    return ticket
+
+
+async def consume_roadmap_ticket(ticket: str) -> tuple[int, int, int] | None:
+    try:
+        expires_at = int(ticket.split(".", 1)[0])
+    except (ValueError, IndexError):
+        return None
+    if expires_at < int(time.time()):
+        raise TimeoutError("Ticket vencido")
+    client = await require_redis()
+    try:
+        value = await client.getdel(f"roadmap:ticket:{hashlib.sha256(ticket.encode()).hexdigest()}")
+    finally:
+        await client.aclose()
+    if not value:
+        return None
+    payload = json.loads(value)
+    return int(payload["user_id"]), int(payload["reservation_id"]), int(payload["trip_id"])
+
+
+async def publish_roadmap_event(trip_id: int, event: dict) -> None:
+    client = await require_redis()
+    try:
+        await client.publish(f"roadmap:{trip_id}", json.dumps(event))
+    finally:
+        await client.aclose()
+
+
 async def enforce_rate_limit(
     scope: str,
     user_id: int,

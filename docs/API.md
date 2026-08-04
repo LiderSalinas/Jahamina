@@ -184,3 +184,12 @@ Eventos cliente: `message.send`, `message.read`, `typing.start`, `typing.stop`,
 - `WS /ws/ubicacion?ticket=...`: tiempo real privado.
 
 El WebSocket emite `connected`, `location.updated`, `tracking.finished`, `error` y `pong`; acepta `location.update` y `ping`. Las rutas privadas responden 404 a terceros.
+# Hoja de ruta
+
+- `GET /reservas/{id}/hoja-ruta`: contrato consolidado para conductor o pasajero aceptado; terceros reciben 404.
+- `POST /viajes/{id}/acciones/{accion}`: acciones del conductor (`preparar-salida`, `salir`, `llegar`, `iniciar`, `pausar`, `reanudar`, `finalizar`).
+- `POST /reservas/{id}/acciones/{accion}`: acciones individuales (`listo`, `llegue`, `recoger`, `abordar`) según rol.
+- `POST /reservas/{id}/hoja-ruta/ws-ticket`: ticket temporal de un solo uso.
+- `WS /ws/hoja-ruta?ticket=...`: emite `trip.status.changed`, `passenger.status.changed` y confirma conexión con `connected`.
+
+Las transiciones inválidas devuelven 409; recursos privados no autorizados devuelven 404.

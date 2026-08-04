@@ -15,6 +15,7 @@ import type {
   MeetingPoint,
   Tracking,
   CurrentLocation,
+  Roadmap,
 } from "@/lib/types";
 
 type ValidationDetail = {
@@ -310,5 +311,16 @@ export const api = {
   async locationWebSocketUrl(id: number, token: string): Promise<{ url: string; role: "publisher" | "subscriber" }> {
     const response = await request<{ ticket: string; role: "publisher" | "subscriber" }>(`/viajes/${id}/ubicacion/ws-ticket`, { method: "POST" }, token);
     return { url: buildWebSocketUrl(`/ws/ubicacion?ticket=${encodeURIComponent(response.ticket)}`), role: response.role };
+  },
+  roadmap(id: number, token: string): Promise<Roadmap> { return request(`/reservas/${id}/hoja-ruta`, {}, token); },
+  roadmapAction(data: Roadmap, token: string): Promise<Roadmap> {
+    const action = data.proxima_accion.action;
+    const tripAction = data.reserva.rol_actual === "conductor" && !["recoger", "abordar"].includes(action);
+    const path = tripAction ? `/viajes/${data.viaje.id}/acciones/${action}` : `/reservas/${data.reserva.id}/acciones/${action}`;
+    return request(path, { method: "POST" }, token);
+  },
+  async roadmapWebSocketUrl(id: number, token: string): Promise<string> {
+    const response = await request<{ticket:string}>(`/reservas/${id}/hoja-ruta/ws-ticket`, {method:"POST"}, token);
+    return buildWebSocketUrl(`/ws/hoja-ruta?ticket=${encodeURIComponent(response.ticket)}`);
   },
 };

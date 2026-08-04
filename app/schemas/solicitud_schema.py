@@ -39,6 +39,7 @@ class SolicitudResponse(BaseModel):
     viaje_id: int
     pasajero_id: int
     estado: EstadoSolicitud
+    estado_pasajero: str
     mensaje_inicial: str | None
     punto_encuentro_propuesto: str | None
     punto_encuentro_latitud: float | None

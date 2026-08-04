@@ -30,6 +30,11 @@ class SolicitudViaje(Base):
             "('sin_definir','propuesto','confirmado','rechazado','reemplazado')",
             name="ck_solicitudes_punto_estado",
         ),
+        CheckConstraint(
+            "estado_pasajero IN ('confirmado','listo','esperando','recogido',"
+            "'abordo','completado','ausente','cancelado')",
+            name="ck_solicitudes_estado_pasajero",
+        ),
         Index(
             "uq_solicitud_activa_pasajero_viaje",
             "viaje_id",
@@ -64,6 +69,9 @@ class SolicitudViaje(Base):
     punto_encuentro_longitud: Mapped[float | None] = mapped_column(
         Numeric(9, 6)
     )
+    estado_pasajero: Mapped[str] = mapped_column(
+        String(20), default="confirmado", server_default="confirmado", nullable=False
+    )
     estado_punto_encuentro: Mapped[str] = mapped_column(
         String(20), default="sin_definir", server_default="sin_definir", nullable=False
     )
@@ -96,3 +104,5 @@ class SolicitudViaje(Base):
     conversacion = relationship(
         "Conversacion", back_populates="solicitud", uselist=False
     )
+    paradas = relationship("ParadaViaje", back_populates="reserva")
+    eventos_viaje = relationship("EventoViaje", back_populates="reserva")

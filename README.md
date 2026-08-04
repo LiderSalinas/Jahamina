@@ -269,3 +269,6 @@ Consulta [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) y
 ## Autor
 
 Completar con el nombre del responsable del repositorio.
+# Hoja de ruta de reservas
+
+Una reserva aceptada dispone de una vista operativa en `/reservas/{id}` con estado, próxima acción autorizada, paradas, ocupación, eventos y chat. El prototipo de comparación permanece en `/dev/hoja-ruta`. La fase actual no añade GPS en vivo ni navegación giro a giro.

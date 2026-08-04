@@ -93,6 +93,7 @@ def cancelar_viaje(db: Session, viaje_id: int, usuario_id: int):
     )
     for solicitud in solicitudes:
         solicitud.estado = "cancelada"
+        solicitud.estado_pasajero = "cancelado"
         from app.services.chat_service import close_with_system_message
 
         close_with_system_message(
@@ -194,6 +195,7 @@ def cambiar_estado_viaje(
                 f"system:trip:{viaje.id}:finished:request:{solicitud.id}",
             )
             solicitud.estado = "finalizada"
+            solicitud.estado_pasajero = "completado"
     try:
         db.commit()
         db.refresh(viaje)
