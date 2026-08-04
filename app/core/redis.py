@@ -64,16 +64,58 @@ async def consume_ticket(ticket: str) -> tuple[int, int] | None:
     return int(payload["user_id"]), int(payload["conversation_id"])
 
 
+async def create_location_ticket(user_id: int, trip_id: int, role: str) -> str:
+    client = await require_redis()
+    expires_at = int(time.time()) + settings.ws_ticket_expire_seconds
+    ticket = f"{expires_at}.{secrets.token_urlsafe(32)}"
+    value = json.dumps({"user_id": user_id, "trip_id": trip_id, "role": role})
+    try:
+        await client.set(
+            f"location:ticket:{hashlib.sha256(ticket.encode()).hexdigest()}",
+            value,
+            ex=settings.ws_ticket_expire_seconds,
+            nx=True,
+        )
+    finally:
+        await client.aclose()
+    return ticket
+
+
+async def consume_location_ticket(ticket: str) -> tuple[int, int, str] | None:
+    try:
+        expires_at = int(ticket.split(".", 1)[0])
+    except (ValueError, IndexError):
+        return None
+    if expires_at < int(time.time()):
+        raise TimeoutError("Ticket vencido")
+    client = await require_redis()
+    try:
+        value = await client.getdel(
+            f"location:ticket:{hashlib.sha256(ticket.encode()).hexdigest()}"
+        )
+    finally:
+        await client.aclose()
+    if not value:
+        return None
+    payload = json.loads(value)
+    return int(payload["user_id"]), int(payload["trip_id"]), payload["role"]
+
+
 async def enforce_rate_limit(
-    scope: str, user_id: int, conversation_id: int, limit: int
+    scope: str,
+    user_id: int,
+    conversation_id: int,
+    limit: int,
+    window_seconds: int | None = None,
 ) -> None:
     client = await require_redis()
-    bucket = int(time.time()) // settings.chat_rate_limit_window_seconds
+    window = window_seconds or settings.chat_rate_limit_window_seconds
+    bucket = int(time.time()) // window
     key = f"chat:rate:{scope}:{conversation_id}:{user_id}:{bucket}"
     try:
         count = await client.incr(key)
         if count == 1:
-            await client.expire(key, settings.chat_rate_limit_window_seconds + 1)
+            await client.expire(key, window + 1)
     finally:
         await client.aclose()
     if count > limit:

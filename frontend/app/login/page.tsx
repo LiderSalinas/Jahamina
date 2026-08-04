@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { FormEvent, Suspense, useState } from "react";
+import { FormEvent, Suspense, useRef, useState } from "react";
 
 import { useAuth } from "@/components/AuthProvider";
 import { ApiError } from "@/lib/api";
@@ -13,9 +13,12 @@ function LoginForm() {
   const params = useSearchParams();
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const submitting = useRef(false);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (submitting.current) return;
+    submitting.current = true;
     setError("");
     const form = new FormData(event.currentTarget);
     setLoading(true);
@@ -24,14 +27,21 @@ function LoginForm() {
       const destination = params.get("next");
       router.push(destination?.startsWith("/") ? destination : "/viajes");
     } catch (caught) {
-      setError(caught instanceof ApiError ? caught.message : "Error inesperado.");
+      if (caught instanceof ApiError && caught.status === 401) {
+        setError("Email o contraseña incorrectos.");
+      } else if (caught instanceof ApiError && caught.status === 0) {
+        setError("No se pudo conectar con Jahamina. Comprueba tu conexión e inténtalo nuevamente.");
+      } else {
+        setError(caught instanceof ApiError ? caught.message : "No se pudo iniciar sesión.");
+      }
     } finally {
+      submitting.current = false;
       setLoading(false);
     }
   }
 
   return (
-    <form className="form-card w-full max-w-md space-y-5" onSubmit={submit}>
+    <form className="form-card w-full max-w-md space-y-5" method="post" onSubmit={submit}>
       <div>
         <p className="eyebrow">Bienvenido de vuelta</p>
         <h1 className="mt-2 text-3xl font-black">Ingresar</h1>
@@ -40,11 +50,11 @@ function LoginForm() {
       {error && <p className="error-message" role="alert">{error}</p>}
       <div className="form-field">
         <label htmlFor="email">Email</label>
-        <input id="email" name="email" type="email" required />
+        <input id="email" name="email" type="email" autoComplete="email" required />
       </div>
       <div className="form-field">
         <label htmlFor="password">Contraseña</label>
-        <input id="password" name="password" type="password" required />
+        <input id="password" name="password" type="password" autoComplete="current-password" required />
       </div>
       <button className="button-primary w-full" disabled={loading} type="submit">
         {loading ? "Ingresando…" : "Ingresar"}

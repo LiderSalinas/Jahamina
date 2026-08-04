@@ -6,11 +6,13 @@ import { useEffect, useState } from "react";
 import { useAuth } from "@/components/AuthProvider";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { ChatPanel } from "@/components/chat/ChatPanel";
+import { LiveLocationPanel } from "@/components/maps/LiveLocationPanel";
+import { MeetingPointSelector } from "@/components/maps/MeetingPointSelector";
 import { api, ApiError } from "@/lib/api";
 import type { TripRequest } from "@/lib/types";
 
 export default function ReservationDetailPage() {
-  const { token } = useAuth();
+  const { token, user } = useAuth();
   const params = useParams<{ id: string }>();
   const [request, setRequest] = useState<TripRequest | null>(null);
   const [error, setError] = useState("");
@@ -41,9 +43,10 @@ export default function ReservationDetailPage() {
               <div><dt className="eyebrow">Punto propuesto</dt><dd className="mt-1">{request.punto_encuentro_propuesto || "Por confirmar"}</dd></div>
             </dl>
           </div>
-          <div className="mt-6 grid gap-6 md:grid-cols-2">
+          <div className="mt-6 grid gap-6 xl:grid-cols-2">
             <ChatPanel reservationId={request.id} />
-            <section className="status-card"><p className="eyebrow">Próxima fase</p><h2 className="mt-2 text-xl font-black">Ubicación en tiempo real</h2><p className="mt-3 text-slate-600">Este espacio alojará el mapa, permisos de ubicación y estado de seguimiento durante el viaje.</p></section>
+            <MeetingPointSelector reservationId={request.id} />
+            <div className="xl:col-span-2"><LiveLocationPanel tripId={request.viaje_id} isDriver={Boolean(user && user.id !== request.pasajero_id)} /></div>
           </div>
         </>}
       </section>

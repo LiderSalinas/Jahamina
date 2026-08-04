@@ -215,3 +215,28 @@ Estado: completado y validado.
 - Redis 7.4 saludable, Compose válido, frontend con lint y build correctos.
 - Reservas relacionadas unificadas para conductor y pasajero, con actividad,
   conversación y no leídos coherentes entre listado, detalle y navbar.
+
+## Mapas, punto de encuentro y seguimiento
+
+Estado: completado y validado.
+
+- Viajes ampliados con coordenadas, puntos operativos, distancia, duración y ruta simplificada.
+- Geocodificación y rutas desacopladas mediante servicios configurables, timeout y caché Redis.
+- Punto de encuentro privado con propuesta, confirmación, rechazo y mensajes de sistema idempotentes.
+- Seguimiento con consentimiento explícito, ciclo de vida en PostgreSQL y última posición activa en Redis.
+- WebSocket de ubicación con tickets efímeros de un solo uso, roles publisher/subscriber y Pub/Sub.
+- Frontend con MapLibre, selección visual de trayecto y panel de ubicación en la reserva.
+- Privacidad: no se conserva historial detallado del recorrido ni se inicia GPS automáticamente.
+- Suite completa: 45 pruebas aprobadas; compileall correcto.
+- Migración `20260731_0004` validada con upgrade/downgrade en base temporal y `alembic check` limpio.
+- Frontend validado con ESLint y build de producción; Docker Compose, imagen, health y OpenAPI correctos.
+
+## Login desde red local
+
+- Formulario protegido contra envío GET aun antes de la hidratación.
+- Cliente OAuth2 usa exclusivamente `NEXT_PUBLIC_API_URL` validada y detecta loopback desde dispositivos LAN.
+- CORS explícito para localhost, 127.0.0.1 y 192.168.0.107.
+- Login directo, preflight, esquema PostgreSQL y migraciones verificados sin modificar datos.
+- URLs WebSocket de chat y ubicación comparten configuración validada con conversión HTTP/HTTPS a WS/WSS.
+- Validación final: 51 pruebas, lint y build correctos; login LAN alcanza la API mediante POST.
+- 2026-08-03: detectado cambio DHCP de `192.168.0.107` a `192.168.1.20`; configuración LAN actualizada sin exponer secretos.

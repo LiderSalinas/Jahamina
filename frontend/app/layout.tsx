@@ -4,6 +4,7 @@ import { AuthProvider } from "@/components/AuthProvider";
 import { Navbar } from "@/components/Navbar";
 
 import "./globals.css";
+import "maplibre-gl/dist/maplibre-gl.css";
 
 export const metadata: Metadata = {
   title: "Jahamina | Compartimos el camino",

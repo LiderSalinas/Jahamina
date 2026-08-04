@@ -227,9 +227,35 @@ docs/           Documentación
 frontend/       Aplicación Next.js
 ```
 
+## Mapas y ubicación
+
+La publicación permite seleccionar coordenadas y previsualizar una ruta con MapLibre. En reservas aceptadas, ambos participantes pueden acordar un punto de encuentro. El conductor inicia el viaje y activa voluntariamente el seguimiento; solo participantes aceptados reciben la posición actual. PostgreSQL conserva el ciclo y la última posición, no el recorrido completo.
+
+Los proveedores abiertos predeterminados son solo para desarrollo. Producción requiere endpoints propios o un proveedor con SLA. Consulta `docs/PRIVACY.md`.
+
+`NEXT_PUBLIC_MAP_STYLE_URL` configura el estilo vectorial del navegador y, como toda variable `NEXT_PUBLIC_*`, es visible públicamente. No debe contener claves privadas. El ejemplo usa OpenFreeMap Liberty sin token para desarrollo.
+
+## Desarrollo desde un teléfono en la red local
+
+Obtén la IPv4 del equipo con `ipconfig` y crea `frontend/.env.local` sin versionarlo:
+
+```text
+NEXT_PUBLIC_API_URL=http://IPV4_ACTUAL_DEL_EQUIPO:8000
+```
+
+Incluye el origen del frontend en `CORS_ORIGINS`, separado por comas, y reinicia API y Next.js después de cambiar variables. `localhost` desde el teléfono identifica al propio teléfono, no a la computadora.
+
+```powershell
+python -m uvicorn app.main:app --host 0.0.0.0 --port 8000
+cd frontend
+npx next dev -H 0.0.0.0 -p 3000
+```
+
+Comprueba `http://IPV4_ACTUAL_DEL_EQUIPO:8000/health` y abre `http://IPV4_ACTUAL_DEL_EQUIPO:3000/login`. Si DHCP cambia la IP, actualiza `frontend/.env.local`, `CORS_ORIGINS` y reinicia ambos servicios. La geolocalización web puede requerir HTTPS fuera de `localhost`, según navegador y dispositivo.
+
 ## Problemas conocidos
 
-- El MVP no gestiona precios, archivos en chat ni seguimiento GPS.
+- No existe seguimiento en segundo plano, navegación giro a giro ni historial del recorrido.
 - La suite necesita una instancia PostgreSQL de desarrollo accesible.
 
 ## Roadmap

@@ -74,4 +74,8 @@ el historial en PostgreSQL. La autorización se deriva siempre del conductor y
 pasajero persistidos. Redis almacena tickets efímeros, rate limiting y Pub/Sub
 entre instancias. Si Redis falla, el historial continúa disponible, pero los
 tickets y el tiempo real fallan cerrados. `20260730_0003` agrega las tablas e
-índices. GPS y mapas no forman parte de esta fase.
+índices.
+
+## Mapas y ubicación
+
+`map_service` abstrae geocodificación y rutas HTTP configurables. Redis limita y cachea consultas. `SeguimientoViaje` conserva el ciclo y solo la última posición en PostgreSQL; Redis mantiene la posición activa, tickets y Pub/Sub. El WebSocket separa publisher (conductor) y subscriber (pasajero aceptado). `20260731_0004` agrega columnas geográficas, acuerdo de encuentro y seguimiento sin reemplazar migraciones anteriores.

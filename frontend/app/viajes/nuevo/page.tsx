@@ -7,6 +7,10 @@ import { useAuth } from "@/components/AuthProvider";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { api, ApiError } from "@/lib/api";
 import type { Vehicle } from "@/lib/types";
+import type { GeoPoint, RouteResult } from "@/lib/types";
+import { LocationSearch } from "@/components/maps/LocationSearch";
+import { MapView } from "@/components/maps/MapView";
+import { RoutePreview } from "@/components/maps/RoutePreview";
 
 export default function NewTripPage() {
   const { token } = useAuth();
@@ -14,6 +18,11 @@ export default function NewTripPage() {
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [origin, setOrigin] = useState("");
+  const [destination, setDestination] = useState("");
+  const [originPoint, setOriginPoint] = useState<GeoPoint | null>(null);
+  const [destinationPoint, setDestinationPoint] = useState<GeoPoint | null>(null);
+  const [route, setRoute] = useState<RouteResult | null>(null);
 
   useEffect(() => {
     if (!token) return;
@@ -25,6 +34,12 @@ export default function NewTripPage() {
     return () => window.clearTimeout(timer);
   }, [token]);
 
+  useEffect(() => {
+    if (!token || !originPoint || !destinationPoint) return;
+    const timer = window.setTimeout(() => api.route(originPoint, destinationPoint, token).then(setRoute).catch(() => setRoute(null)), 250);
+    return () => window.clearTimeout(timer);
+  }, [destinationPoint, originPoint, token]);
+
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!token) return;
@@ -33,14 +48,17 @@ export default function NewTripPage() {
     setLoading(true);
     try {
       await api.createTrip({
-        origen: String(form.get("origen")),
-        destino: String(form.get("destino")),
+        origen: origin,
+        destino: destination,
         fecha: new Date(String(form.get("fecha"))).toISOString(),
         vehiculo_id: Number(form.get("vehiculo_id")),
         cupos_totales: Number(form.get("cupos_totales")),
         descripcion: String(form.get("descripcion") || ""),
         punto_salida: String(form.get("punto_salida")),
         punto_llegada: String(form.get("punto_llegada")),
+        ...(originPoint ? { origen_latitud: originPoint.latitude, origen_longitud: originPoint.longitude, punto_salida_latitud: originPoint.latitude, punto_salida_longitud: originPoint.longitude } : {}),
+        ...(destinationPoint ? { destino_latitud: destinationPoint.latitude, destino_longitud: destinationPoint.longitude, punto_llegada_latitud: destinationPoint.latitude, punto_llegada_longitud: destinationPoint.longitude } : {}),
+        ...(route ? { distancia_estimada_km: route.distance_km, duracion_estimada_minutos: route.duration_minutes, ruta_codificada: route.geometry ?? undefined } : {}),
       }, token);
       router.push("/mis-viajes?created=1");
     } catch (caught) {
@@ -58,11 +76,13 @@ export default function NewTripPage() {
           {error && <p className="error-message" role="alert">{error}</p>}
           {vehicles.length === 0 && <p className="status-card">Necesitás un vehículo activo. Crealo en Mis vehículos.</p>}
           <div className="grid gap-5 md:grid-cols-2">
-            <div className="form-field"><label htmlFor="origen">Ciudad de origen</label><input id="origen" name="origen" minLength={2} maxLength={150} required /></div>
-            <div className="form-field"><label htmlFor="destino">Ciudad de destino</label><input id="destino" name="destino" minLength={2} maxLength={150} required /></div>
+            <LocationSearch id="origen" label="Origen" value={origin} onChange={(value) => { setOrigin(value); setOriginPoint(null); }} onSelect={(item) => { setOrigin(item.label); setOriginPoint(item); }} />
+            <LocationSearch id="destino" label="Destino" value={destination} onChange={(value) => { setDestination(value); setDestinationPoint(null); }} onSelect={(item) => { setDestination(item.label); setDestinationPoint(item); }} />
             <div className="form-field"><label htmlFor="punto_salida">Punto de salida</label><input id="punto_salida" name="punto_salida" maxLength={200} required /></div>
             <div className="form-field"><label htmlFor="punto_llegada">Punto de llegada</label><input id="punto_llegada" name="punto_llegada" maxLength={200} required /></div>
           </div>
+          <div className="overflow-hidden rounded-2xl border border-emerald-900/10"><MapView markers={[...(originPoint ? [{ id: "origin", ...originPoint, color: "#047857", label: "Origen", draggable: true }] : []), ...(destinationPoint ? [{ id: "destination", ...destinationPoint, color: "#f59e0b", label: "Destino", draggable: true }] : [])]} route={originPoint && destinationPoint ? [originPoint, destinationPoint] : undefined} onMarkerMove={(id, point) => id === "origin" ? setOriginPoint(point) : setDestinationPoint(point)} /></div>
+          <RoutePreview route={route} />
           <div className="grid gap-5 md:grid-cols-3">
             <div className="form-field md:col-span-2"><label htmlFor="fecha">Fecha y hora</label><input id="fecha" min={new Date().toISOString().slice(0, 16)} name="fecha" type="datetime-local" required /></div>
             <div className="form-field"><label htmlFor="cupos_totales">Cupos</label><input id="cupos_totales" min={1} max={8} name="cupos_totales" type="number" required /></div>

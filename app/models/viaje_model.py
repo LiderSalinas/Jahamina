@@ -52,6 +52,13 @@ class Viaje(Base):
     origen_longitud = Column(Numeric(9, 6), nullable=True)
     destino_latitud = Column(Numeric(9, 6), nullable=True)
     destino_longitud = Column(Numeric(9, 6), nullable=True)
+    punto_salida_latitud = Column(Numeric(9, 6), nullable=True)
+    punto_salida_longitud = Column(Numeric(9, 6), nullable=True)
+    punto_llegada_latitud = Column(Numeric(9, 6), nullable=True)
+    punto_llegada_longitud = Column(Numeric(9, 6), nullable=True)
+    distancia_estimada_km = Column(Numeric(8, 2), nullable=True)
+    duracion_estimada_minutos = Column(Integer, nullable=True)
+    ruta_codificada = Column(Text, nullable=True)
     estado = Column(String(20), nullable=False, default="publicado")
     updated_at = Column(
         DateTime(timezone=True),
@@ -68,3 +75,4 @@ class Viaje(Base):
         back_populates="viaje",
         cascade="all, delete-orphan",
     )
+    seguimientos = relationship("SeguimientoViaje", back_populates="viaje")

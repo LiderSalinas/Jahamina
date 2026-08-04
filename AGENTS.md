@@ -76,6 +76,7 @@ npm run dev
 - No registrar contraseñas, tokens ni hashes.
 - Validar autenticación y autorización en servidor.
 - No borrar datos sin verificar que la base sea de desarrollo o pruebas.
+- La ubicación exige consentimiento explícito, acceso limitado a participantes y nunca debe registrarse en logs normales ni conservarse como recorrido detallado.
 
 ## Archivos ignorados
 

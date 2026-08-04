@@ -165,3 +165,22 @@ conversaciones. El chat se crea al aceptar una reserva.
 Eventos cliente: `message.send`, `message.read`, `typing.start`, `typing.stop`,
 `ping`. Eventos servidor: `connected`, `message.created`, `message.read`,
 `typing.started`, `typing.stopped`, `error`, `pong`.
+
+## Mapas, encuentro y seguimiento
+
+- `GET /mapas/geocodificar?q=`: sugerencias geográficas cacheadas.
+- `POST /mapas/ruta`: distancia, duración y geometría aproximadas.
+- `GET /reservas/{id}/punto-encuentro`: punto privado de participantes.
+- `POST /reservas/{id}/punto-encuentro/proponer`: propone coordenadas y texto.
+- `PATCH /reservas/{id}/punto-encuentro/confirmar`: confirma el punto vigente.
+- `PATCH /reservas/{id}/punto-encuentro/rechazar`: rechaza el punto vigente.
+- `POST /viajes/{id}/seguimiento/iniciar`: inicia viaje sin compartir automáticamente.
+- `PATCH /viajes/{id}/seguimiento/{pausar|reanudar|finalizar}`: cambia el ciclo.
+- `PATCH /viajes/{id}/seguimiento/compartir`: consentimiento explícito del conductor.
+- `GET /viajes/{id}/seguimiento`: estado privado.
+- `GET /viajes/{id}/ubicacion-actual`: última posición e indicador `stale`.
+- `POST /viajes/{id}/ubicacion`: respaldo HTTP del publicador.
+- `POST /viajes/{id}/ubicacion/ws-ticket`: ticket efímero por rol.
+- `WS /ws/ubicacion?ticket=...`: tiempo real privado.
+
+El WebSocket emite `connected`, `location.updated`, `tracking.finished`, `error` y `pong`; acepta `location.update` y `ping`. Las rutas privadas responden 404 a terceros.

@@ -14,7 +14,10 @@ class Settings(BaseSettings):
     jwt_secret_key: str
     jwt_algorithm: str = "HS256"
     access_token_expire_minutes: int = 30
-    cors_origins: str = "http://localhost:3000"
+    cors_origins: str = (
+        "http://localhost:3000,http://127.0.0.1:3000,"
+        "http://192.168.0.107:3000,http://192.168.1.20:3000"
+    )
     redis_url: str = "redis://localhost:6379/0"
     ws_ticket_expire_seconds: int = 60
     chat_max_message_length: int = 1000
@@ -23,6 +26,19 @@ class Settings(BaseSettings):
     chat_typing_rate_limit_events: int = 8
     chat_max_payload_bytes: int = 4096
     chat_max_connections_per_user: int = 3
+    geocoding_provider_url: str = "https://nominatim.openstreetmap.org"
+    routing_provider_url: str = "https://router.project-osrm.org"
+    geocoding_api_key: str | None = None
+    routing_api_key: str | None = None
+    map_request_timeout_seconds: float = 5
+    map_cache_ttl_seconds: int = 3600
+    location_update_interval_seconds: int = 4
+    location_stale_after_seconds: int = 20
+    location_max_accuracy_meters: float = 200
+    location_rate_limit_updates: int = 5
+    location_rate_limit_window_seconds: int = 10
+    location_max_payload_bytes: int = 4096
+    location_max_connections_per_user: int = 3
 
     model_config = SettingsConfigDict(
         env_file=".env",

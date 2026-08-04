@@ -9,11 +9,13 @@ import type {
   Conversation,
   UnreadSummary,
   RelatedReservation,
+  GeocodingResult,
+  GeoPoint,
+  RouteResult,
+  MeetingPoint,
+  Tracking,
+  CurrentLocation,
 } from "@/lib/types";
-
-const API_URL = (
-  process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000"
-).replace(/\/$/, "");
 
 type ValidationDetail = {
   msg?: string;
@@ -27,6 +29,45 @@ export class ApiError extends Error {
     super(message);
     this.name = "ApiError";
   }
+}
+
+function apiUrl(): string {
+  const configured = process.env.NEXT_PUBLIC_API_URL?.trim();
+  if (!configured) {
+    throw new ApiError(
+      0,
+      "La API de Jahamina no está configurada. Define NEXT_PUBLIC_API_URL y reinicia el frontend.",
+    );
+  }
+  let parsed: URL;
+  try {
+    parsed = new URL(configured);
+  } catch {
+    throw new ApiError(0, "NEXT_PUBLIC_API_URL no contiene una URL válida.");
+  }
+  if (!["http:", "https:"].includes(parsed.protocol) || parsed.username || parsed.password) {
+    throw new ApiError(0, "NEXT_PUBLIC_API_URL utiliza una configuración no permitida.");
+  }
+  if (
+    typeof window !== "undefined"
+    && !["localhost", "127.0.0.1"].includes(window.location.hostname)
+    && ["localhost", "127.0.0.1"].includes(parsed.hostname)
+  ) {
+    throw new ApiError(
+      0,
+      "La API está configurada como localhost y no es accesible desde este dispositivo.",
+    );
+  }
+  return configured.replace(/\/$/, "");
+}
+
+export function buildWebSocketUrl(path: string): string {
+  if (!path.startsWith("/")) {
+    throw new ApiError(0, "La ruta WebSocket no es válida.");
+  }
+  const url = new URL(`${apiUrl()}${path}`);
+  url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
+  return url.toString();
 }
 
 async function parseError(response: Response): Promise<string> {
@@ -59,9 +100,10 @@ async function request<T>(
   }
   if (token) headers.set("Authorization", `Bearer ${token}`);
 
+  const baseUrl = apiUrl();
   let response: Response;
   try {
-    response = await fetch(`${API_URL}${path}`, {
+    response = await fetch(`${baseUrl}${path}`, {
       ...options,
       headers,
       cache: "no-store",
@@ -112,6 +154,17 @@ export const api = {
       descripcion?: string;
       punto_salida: string;
       punto_llegada: string;
+      origen_latitud?: number;
+      origen_longitud?: number;
+      destino_latitud?: number;
+      destino_longitud?: number;
+      punto_salida_latitud?: number;
+      punto_salida_longitud?: number;
+      punto_llegada_latitud?: number;
+      punto_llegada_longitud?: number;
+      distancia_estimada_km?: number;
+      duracion_estimada_minutos?: number;
+      ruta_codificada?: string;
     },
     token: string,
   ): Promise<Trip> {
@@ -234,6 +287,28 @@ export const api = {
   },
   async chatWebSocketUrl(id: number, token: string): Promise<string> {
     const response = await request<{ ticket: string }>(`/conversaciones/${id}/ws-ticket`, { method: "POST" }, token);
-    return `${API_URL.replace(/^http/, "ws")}/ws/chat?ticket=${encodeURIComponent(response.ticket)}`;
+    return buildWebSocketUrl(`/ws/chat?ticket=${encodeURIComponent(response.ticket)}`);
+  },
+  geocode(query: string, token: string, signal?: AbortSignal): Promise<GeocodingResult[]> {
+    return request<GeocodingResult[]>(`/mapas/geocodificar?q=${encodeURIComponent(query)}`, { signal }, token);
+  },
+  route(origin: GeoPoint, destination: GeoPoint, token: string): Promise<RouteResult> {
+    return request<RouteResult>("/mapas/ruta", { method: "POST", body: JSON.stringify({ origin, destination }) }, token);
+  },
+  meetingPoint(id: number, token: string): Promise<MeetingPoint> { return request(`/reservas/${id}/punto-encuentro`, {}, token); },
+  proposeMeetingPoint(id: number, payload: { texto: string; latitude: number; longitude: number }, token: string): Promise<MeetingPoint> { return request(`/reservas/${id}/punto-encuentro/proponer`, { method: "POST", body: JSON.stringify(payload) }, token); },
+  confirmMeetingPoint(id: number, token: string): Promise<MeetingPoint> { return request(`/reservas/${id}/punto-encuentro/confirmar`, { method: "PATCH" }, token); },
+  rejectMeetingPoint(id: number, token: string): Promise<MeetingPoint> { return request(`/reservas/${id}/punto-encuentro/rechazar`, { method: "PATCH" }, token); },
+  startTracking(id: number, token: string): Promise<Tracking> { return request(`/viajes/${id}/seguimiento/iniciar`, { method: "POST" }, token); },
+  tracking(id: number, token: string): Promise<Tracking> { return request(`/viajes/${id}/seguimiento`, {}, token); },
+  pauseTracking(id: number, token: string): Promise<Tracking> { return request(`/viajes/${id}/seguimiento/pausar`, { method: "PATCH" }, token); },
+  resumeTracking(id: number, token: string): Promise<Tracking> { return request(`/viajes/${id}/seguimiento/reanudar`, { method: "PATCH" }, token); },
+  finishTracking(id: number, token: string): Promise<Tracking> { return request(`/viajes/${id}/seguimiento/finalizar`, { method: "PATCH" }, token); },
+  shareLocation(id: number, enabled: boolean, token: string): Promise<Tracking> { return request(`/viajes/${id}/seguimiento/compartir`, { method: "PATCH", body: JSON.stringify({ enabled }) }, token); },
+  sendLocation(id: number, payload: { latitude: number; longitude: number; accuracy: number; speed?: number | null; heading?: number | null; client_timestamp: string }, token: string): Promise<CurrentLocation> { return request(`/viajes/${id}/ubicacion`, { method: "POST", body: JSON.stringify(payload) }, token); },
+  currentLocation(id: number, token: string): Promise<CurrentLocation> { return request(`/viajes/${id}/ubicacion-actual`, {}, token); },
+  async locationWebSocketUrl(id: number, token: string): Promise<{ url: string; role: "publisher" | "subscriber" }> {
+    const response = await request<{ ticket: string; role: "publisher" | "subscriber" }>(`/viajes/${id}/ubicacion/ws-ticket`, { method: "POST" }, token);
+    return { url: buildWebSocketUrl(`/ws/ubicacion?ticket=${encodeURIComponent(response.ticket)}`), role: response.role };
   },
 };

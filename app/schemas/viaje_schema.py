@@ -32,6 +32,13 @@ class ViajeCreate(BaseModel):
     origen_longitud: float | None = Field(default=None, ge=-180, le=180)
     destino_latitud: float | None = Field(default=None, ge=-90, le=90)
     destino_longitud: float | None = Field(default=None, ge=-180, le=180)
+    punto_salida_latitud: float | None = Field(default=None, ge=-90, le=90)
+    punto_salida_longitud: float | None = Field(default=None, ge=-180, le=180)
+    punto_llegada_latitud: float | None = Field(default=None, ge=-90, le=90)
+    punto_llegada_longitud: float | None = Field(default=None, ge=-180, le=180)
+    distancia_estimada_km: float | None = Field(default=None, ge=0)
+    duracion_estimada_minutos: int | None = Field(default=None, ge=0)
+    ruta_codificada: str | None = Field(default=None, max_length=20000)
 
     @field_validator("origen", "destino")
     @classmethod
@@ -71,6 +78,13 @@ class ViajeResponse(BaseModel):
     origen_longitud: float | None
     destino_latitud: float | None
     destino_longitud: float | None
+    punto_salida_latitud: float | None
+    punto_salida_longitud: float | None
+    punto_llegada_latitud: float | None
+    punto_llegada_longitud: float | None
+    distancia_estimada_km: float | None
+    duracion_estimada_minutos: int | None
+    ruta_codificada: str | None
     estado: EstadoViaje
     updated_at: datetime
 

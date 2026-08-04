@@ -21,9 +21,31 @@ export interface Trip {
   origen_longitud: number | null;
   destino_latitud: number | null;
   destino_longitud: number | null;
+  punto_salida_latitud: number | null;
+  punto_salida_longitud: number | null;
+  punto_llegada_latitud: number | null;
+  punto_llegada_longitud: number | null;
+  distancia_estimada_km: number | null;
+  duracion_estimada_minutos: number | null;
+  ruta_codificada: string | null;
   estado: "publicado" | "completo" | "en_curso" | "finalizado" | "cancelado";
   updated_at: string;
 }
+
+export interface GeoPoint { latitude: number; longitude: number; }
+export interface GeocodingResult extends GeoPoint { label: string; }
+export interface RouteResult { distance_km: number; duration_minutes: number; geometry: string | null; }
+export interface MeetingPoint {
+  reserva_id: number; texto: string | null; latitude: number | null; longitude: number | null;
+  estado: "sin_definir" | "propuesto" | "confirmado" | "rechazado" | "reemplazado";
+  propuesto_por_id: number | null; propuesto_en: string | null;
+  confirmado_por_conductor_en: string | null; confirmado_por_pasajero_en: string | null; actualizado_en: string | null;
+}
+export interface Tracking {
+  id: number; viaje_id: number; conductor_id: number; estado: "inactivo" | "activo" | "pausado" | "finalizado" | "cancelado";
+  iniciado_en: string | null; pausado_en: string | null; finalizado_en: string | null; compartir_ubicacion: boolean; ultima_actualizacion_en: string | null;
+}
+export interface CurrentLocation extends GeoPoint { accuracy: number; speed: number | null; heading: number | null; updated_at: string; stale: boolean; }
 
 export interface JoinedTrip {
   id: number;

@@ -109,5 +109,11 @@ NEXT_PUBLIC_API_URL=https://api.example
 - Evaluar cookies HttpOnly en lugar de `localStorage` para sesiones web.
 - Usar Redis administrado con TLS y red privada; comprobar tickets, Pub/Sub y
   reconexión WebSocket en todas las réplicas.
+- Configurar proveedores de geocodificación/rutas con SLA; no usar servidores públicos gratuitos bajo carga.
+- Servir el frontend por HTTPS: los permisos de geolocalización lo requieren fuera de localhost.
 - Ejecutar auditorías de dependencias y pruebas en CI.
 - Configurar monitoreo de `/health`, TLS y alertas.
+
+## Desarrollo móvil en LAN
+
+Next.js carga `frontend/.env.local`; Docker Compose interpola por defecto el `.env` de la raíz. Los archivos `*.example` son plantillas y no se cargan automáticamente. Para otro dispositivo usa `NEXT_PUBLIC_API_URL=http://IP_DEL_EQUIPO:8000`, agrega `http://IP_DEL_EQUIPO:3000` a `CORS_ORIGINS` e inicia Next con `npx next dev -H 0.0.0.0 -p 3000`. Reinicia ambos procesos tras cambiar variables. No uses `localhost` como URL de API desde el teléfono.
