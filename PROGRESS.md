@@ -1,5 +1,14 @@
 # Progreso Jahamina v1.0
 
+## 2026-08-04 — Acciones de hoja de ruta en tiempo real
+
+- Consolidada la máquina de estados y añadido `llego_al_punto` mediante migración incremental.
+- Activada la acción principal autorizada por backend en `/reservas/{id}`.
+- Eventos, mensajes de sistema y cambios de parada/ocupación son idempotentes y se publican después del commit.
+- La hoja de ruta se actualiza con ticket WebSocket de un solo uso y Redis Pub/Sub.
+- Corregidos título real, nombres de paradas, ocupación global y horarios sin cortes.
+- Validación: 56 pruebas, Alembic check, ESLint y build aprobados.
+
 ## 2026-08-03 — Primera integración real de hoja de ruta
 
 - `/reservas/{id}` consume un contrato consolidado de lectura.
@@ -267,3 +276,20 @@ Estado: completado y validado.
 - Añadido WebSocket `/ws/hoja-ruta` con ticket corto y de un solo uso.
 - La página real `/reservas/{id}` reutiliza el lenguaje visual del prototipo y conserva chat/punto de encuentro.
 - Validación: compileall OK, 54 pytest OK, Alembic upgrade/check OK, ESLint OK, Next build OK.
+
+# 2026-08-04 — Ubicación y ETA en hoja de ruta
+
+- Reutilizado `SeguimientoViaje`, Redis Pub/Sub y tickets WebSocket de un solo uso; no se creó otra tabla.
+- El permiso del navegador precede a la activación de compartir y existe un único watcher con limpieza al desmontar.
+- Añadido contexto autorizado de posición, próxima parada, distancia vial y ETA mediante OSRM.
+- ETA con caché corta y agrupación de posición; una ubicación stale nunca muestra ETA como vigente.
+- La hoja de ruta sigue siendo principal y el mapa queda como panel compacto de apoyo.
+- No se almacena historial de posiciones ni se inicia geolocalización automáticamente.
+
+# 2026-08-04 — Simplificación de la experiencia principal
+
+- La página real muestra exactamente cinco etapas: reserva, punto acordado, conductor en camino, viaje en curso y finalización.
+- Los estados técnicos permanecen en backend, pero ya no se presentan al usuario.
+- Se retiraron de la pantalla principal la ubicación, ETA, ocupación repetida, lista operativa de paradas y acciones intermedias.
+- Se conserva un único botón principal, el recorrido esquemático compacto, el punto de encuentro y el chat.
+- `/dev/hoja-ruta` permanece disponible como referencia del prototipo previo.

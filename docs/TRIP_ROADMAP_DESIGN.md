@@ -1,5 +1,9 @@
 # Prototipo: hoja de ruta del viaje
 
+## Acciones reales
+
+La página real muestra una única acción principal provista por backend. Durante la operación queda deshabilitada, las acciones sensibles piden confirmación y los errores se muestran sin perder contexto. Conductor y pasajero reciben `roadmap.updated` y recargan solamente el contrato consolidado. El recorrido usa origen y destino reales, la ocupación es global y los controles de laboratorio permanecen únicamente en `/dev/hoja-ruta`.
+
 ## Primera integración real de lectura
 
 `/reservas/{id}` consume un contrato consolidado y autorizado. La cronología se deriva de timestamps reales de solicitud, respuesta, propuesta y confirmación del punto, fecha y estado del viaje. Las paradas se derivan de origen, punto de encuentro de la reserva actual y destino.
@@ -75,3 +79,10 @@ Transiciones del conductor: `publicado|completo|programado → preparando_salida
 Estados del pasajero: `confirmado → listo → esperando → recogido → abordo → completado`. Cancelado y ausente son estados terminales operativos. Solo el pasajero modifica `listo/esperando`; solo el conductor confirma `recogido/abordo`.
 
 Los cambios se persisten antes de publicarse por Redis. `/ws/hoja-ruta` usa tickets temporales de un solo uso y provoca una recarga consolidada, evitando estados parciales en pantalla. GPS en vivo no forma parte de esta integración.
+# Integración de ubicación
+
+La hoja de ruta conserva prioridad visual. El estado principal resume distancia y ETA reales cuando están disponibles; un panel compacto muestra conductor y próxima parada. Sin posición, con ubicación stale o ante error de OSRM se mantiene el recorrido esquemático y se explica el estado sin inventar ETA.
+
+# Experiencia principal simplificada
+
+La reserva real presenta solo cinco etapas: **Reserva confirmada**, **Punto de encuentro acordado**, **Conductor en camino**, **Viaje en curso** y **Viaje finalizado**. Cancelado es una variante transversal, no una sexta etapa. Los estados operativos y acciones intermedias pueden seguir existiendo internamente, pero no se muestran como pasos. La pantalla mantiene una acción principal, punto de encuentro, recorrido compacto y acceso al chat; GPS y ETA quedan fuera de esta experiencia principal.

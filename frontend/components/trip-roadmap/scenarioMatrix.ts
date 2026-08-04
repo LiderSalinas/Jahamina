@@ -28,9 +28,31 @@ export const scenarioMatrix:Record<RoadmapRole,ScenarioDefinition[]> = {
   ],
 };
 
-const timelineContent = [
-  ["Reserva confirmada","Lugar reservado","Hoy, 18:42",0], ["Punto acordado","Terminal de San Miguel","Hoy, 18:55",1], ["Pasajero listo","Confirmación para salir",undefined,1], ["Conductor en camino","Última actualización hace 2 min","Ahora",1], ["Llegada al punto","Encuentro en zona pública",undefined,1], ["Pasajero abordado","Lugar ocupado confirmado",undefined,2], ["Viaje iniciado","Todos coordinados",undefined,2], ["Destino","Asunción · zona centro",undefined,4], ["Finalización","Resumen disponible",undefined,4],
-] as const;
+const visibleStageByScenario: Record<ScenarioId, number> = {
+  reserva_confirmada: 0, punto_acordado: 1, no_listo: 1, pasajero_listo: 1,
+  preparando_salida: 1, pasajeros_pendientes: 1, conductor_en_camino: 2,
+  conductor_llego: 2, llegada_al_punto: 2, pasajero_abordado: 2,
+  recogida_pasajero: 2, viaje_en_curso: 3, finalizado: 4, cancelado: 1,
+};
 
-export function timelineFor(scenario:ScenarioDefinition):TimelineStep[] { return timelineContent.map(([title,detail,time,stopIndex],index)=>{ const status:StepStatus=scenario.tripState==="cancelado"&&index>=scenario.currentStep?"cancelled":index<scenario.currentStep?"completed":index===scenario.currentStep?"current":"pending"; return {title,detail,time:status==="current"?"Ahora · última actualización hace 2 min":time,status,stopIndex}; }); }
+export function timelineFor(scenario:ScenarioDefinition):TimelineStep[] {
+  const current = visibleStageByScenario[scenario.id];
+  const pointDetail = scenario.id === "pasajero_listo" ? "Pasajero listo · punto coordinado" : "Terminal de San Miguel · zona centro";
+  const driverDetail = ["conductor_llego", "llegada_al_punto"].includes(scenario.id)
+    ? "El conductor llegó al punto acordado"
+    : ["pasajero_abordado", "recogida_pasajero"].includes(scenario.id)
+      ? "Encuentro completado · pasajero a bordo"
+      : "En camino hacia el punto acordado";
+  const content = [
+    ["Reserva confirmada", "Lugar reservado", "Hoy, 18:42", 0],
+    ["Punto de encuentro", pointDetail, "Hoy, 18:55", 1],
+    ["Conductor en camino", driverDetail, undefined, 1],
+    ["Viaje en curso", "Trayecto compartido hacia el destino", undefined, 2],
+    ["Viaje finalizado", "Llegada confirmada", undefined, 4],
+  ] as const;
+  return content.map(([title, detail, time, stopIndex], index) => {
+    const status: StepStatus = scenario.tripState === "cancelado" && index >= current ? "cancelled" : index < current ? "completed" : index === current ? "current" : "pending";
+    return { title, detail, time: status === "current" ? "Ahora" : time, status, stopIndex };
+  });
+}
 export function scenarioById(role:RoadmapRole,id:ScenarioId):ScenarioDefinition { return scenarioMatrix[role].find(item=>item.id===id)??scenarioMatrix[role][0]; }

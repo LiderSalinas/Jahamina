@@ -30,9 +30,9 @@ TRIP_TRANSITIONS = {
 
 PASSENGER_ACTIONS = {
     "listo": ({"confirmado"}, "listo", "pasajero_listo", "El pasajero confirmó que está listo."),
-    "llegue": ({"listo"}, "esperando", "pasajero_en_punto", "El pasajero llegó al punto de encuentro."),
-    "recoger": ({"listo", "esperando"}, "recogido", "pasajero_recogido", "El conductor confirmó la recogida del pasajero."),
-    "abordar": ({"recogido"}, "abordo", "pasajero_abordo", "El pasajero abordó el vehículo."),
+    "llegue": ({"listo", "esperando"}, "llego_al_punto", "pasajero_llego", "El pasajero llegó al punto de encuentro."),
+    "recoger": ({"listo", "esperando", "llego_al_punto"}, "recogido", "pasajero_recogido", "El conductor confirmó la recogida del pasajero."),
+    "abordar": ({"recogido"}, "abordo", "pasajero_abordo", "El pasajero fue confirmado a bordo."),
 }
 
 
@@ -63,15 +63,16 @@ def _reservation(db: Session, reservation_id: int, user_id: int, lock: bool = Fa
     return request
 
 
-def _event(db: Session, request: SolicitudViaje, actor_id: int, kind: str, description: str, key: str) -> EventoViaje:
+def _event(db: Session, request: SolicitudViaje, actor_id: int, kind: str, description: str, key: str) -> tuple[EventoViaje, list, bool]:
     existing = db.scalar(select(EventoViaje).where(EventoViaje.idempotency_key == key))
     if existing:
-        return existing
+        return existing, [], False
     event = EventoViaje(viaje_id=request.viaje_id, reserva_id=request.id, actor_id=actor_id, tipo=kind, descripcion_publica=description, metadata_evento={}, idempotency_key=key)
     db.add(event)
+    messages = []
     if request.conversacion:
-        add_system_message(db, request.conversacion, description, f"system:roadmap:{key}")
-    return event
+        messages.append(add_system_message(db, request.conversacion, description, f"system:roadmap:{key}"))
+    return event, messages, True
 
 
 def record_reservation_accepted(db: Session, request: SolicitudViaje, actor_id: int) -> None:
@@ -94,48 +95,48 @@ def sync_meeting_stop(db: Session, request: SolicitudViaje) -> None:
 def _synthetic_stops(request: SolicitudViaje) -> list[RoadmapStop]:
     trip = request.viaje
     stops = [RoadmapStop(orden=1, tipo="origen", nombre_publico=trip.punto_salida, zona_general=trip.origen, latitud=float(trip.punto_salida_latitud) if trip.punto_salida_latitud is not None else None, longitud=float(trip.punto_salida_longitud) if trip.punto_salida_longitud is not None else None, hora_estimada=trip.fecha, hora_real=None, estado="completada" if trip.estado not in {"publicado", "completo", "programado", "preparando_salida"} else "actual")]
-    if request.punto_encuentro_propuesto:
-        stops.append(RoadmapStop(reserva_id=request.id, orden=2, tipo="recogida", nombre_publico="Punto de encuentro", zona_general=request.punto_encuentro_propuesto, latitud=float(request.punto_encuentro_latitud) if request.punto_encuentro_latitud is not None else None, longitud=float(request.punto_encuentro_longitud) if request.punto_encuentro_longitud is not None else None, hora_estimada=None, hora_real=None, estado="actual" if trip.estado in {"conductor_en_camino", "conductor_en_punto", "abordaje"} else "pendiente"))
-    stops.append(RoadmapStop(orden=len(stops) + 1, tipo="destino", nombre_publico=trip.punto_llegada, zona_general=trip.destino, latitud=float(trip.punto_llegada_latitud) if trip.punto_llegada_latitud is not None else None, longitud=float(trip.punto_llegada_longitud) if trip.punto_llegada_longitud is not None else None, hora_estimada=None, hora_real=None, estado="completada" if trip.estado == "finalizado" else "pendiente"))
+    pickup_done = request.estado_pasajero in {"abordo", "completado"}
+    stops.append(RoadmapStop(reserva_id=request.id, orden=2, tipo="recogida", nombre_publico=f"Recogida de {request.pasajero.nombre}", zona_general=request.punto_encuentro_propuesto or "Punto todavía no definido", latitud=float(request.punto_encuentro_latitud) if request.punto_encuentro_latitud is not None else None, longitud=float(request.punto_encuentro_longitud) if request.punto_encuentro_longitud is not None else None, hora_estimada=None, hora_real=None, estado="completada" if pickup_done else "actual" if trip.estado in {"conductor_en_camino", "conductor_en_punto", "abordaje"} else "pendiente"))
+    destination_active = request.estado_pasajero in {"abordo", "completado"} or trip.estado in {"en_curso", "pausado"}
+    stops.append(RoadmapStop(orden=len(stops) + 1, tipo="destino", nombre_publico=f"Llegada a {trip.destino}", zona_general=trip.punto_llegada, latitud=float(trip.punto_llegada_latitud) if trip.punto_llegada_latitud is not None else None, longitud=float(trip.punto_llegada_longitud) if trip.punto_llegada_longitud is not None else None, hora_estimada=None, hora_real=None, estado="completada" if trip.estado == "finalizado" else "actual" if destination_active else "pendiente"))
     return stops
 
 
-def _derived_timeline(request: SolicitudViaje) -> list[DerivedRoadmapStep]:
+def _derived_timeline(request: SolicitudViaje, events: list[EventoViaje]) -> list[DerivedRoadmapStep]:
     cancelled = request.estado == "cancelada" or request.viaje.estado == "cancelado"
-    finished = request.estado == "finalizada" or request.viaje.estado == "finalizado"
-    meeting_proposed = bool(request.punto_encuentro_propuesto)
     meeting_confirmed = request.estado_punto_encuentro == "confirmado"
-    moving = request.viaje.estado in {"conductor_en_camino", "conductor_en_punto", "abordaje", "en_curso", "pausado", "finalizado"}
-    raw = [
-        ("reserva-confirmada", "Reserva confirmada", "El conductor aceptó tu lugar.", True, request.responded_at or request.created_at),
-        ("punto-propuesto", "Punto de encuentro propuesto", request.punto_encuentro_propuesto or "Todavía no fue definido.", meeting_proposed, request.propuesto_en),
-        ("punto-confirmado", "Punto de encuentro confirmado", "Confirmado por ambos participantes." if meeting_confirmed else "Pendiente de confirmación.", meeting_confirmed, request.punto_encuentro_actualizado_en if meeting_confirmed else None),
-        ("viaje-programado", "Viaje programado", f"Salida desde {request.viaje.origen}.", True, request.viaje.fecha),
-        ("conductor-en-camino", "Conductor en camino", "El estado del viaje indica que el conductor está en camino.", moving, request.viaje.updated_at if moving else None),
-        ("viaje-finalizado", "Viaje finalizado", f"Destino: {request.viaje.destino}.", finished, request.viaje.updated_at if finished else None),
+    by_type = {event.tipo: event for event in events}
+    trip_state = request.viaje.estado
+    on_the_way = trip_state in {"conductor_en_camino", "conductor_en_punto", "abordaje", "en_curso", "pausado", "finalizado"}
+    in_progress = trip_state in {"en_curso", "pausado", "finalizado"}
+    finished = request.estado == "finalizada" or trip_state == "finalizado"
+    raw: list[tuple[str, str, str, bool, datetime | None]] = [
+        ("reserva-confirmada", "Reserva confirmada", "Tu lugar está reservado.", True, request.responded_at or request.created_at),
+        ("punto-confirmado", "Punto de encuentro", request.punto_encuentro_propuesto or "Todavía falta acordarlo.", meeting_confirmed, request.punto_encuentro_actualizado_en if meeting_confirmed else None),
+        ("conductor-en-camino", "Conductor en camino", "En camino hacia el punto acordado.", on_the_way, by_type.get("conductor_en_camino").created_at if by_type.get("conductor_en_camino") else None),
+        ("viaje-en-curso", "Viaje en curso", f"Trayecto hacia {request.viaje.destino}.", in_progress, by_type.get("viaje_iniciado").created_at if by_type.get("viaje_iniciado") else None),
+        ("viaje-finalizado", "Viaje finalizado", "Llegaron al destino.", finished, by_type.get("viaje_finalizado").created_at if by_type.get("viaje_finalizado") else None),
     ]
-    current_index = next((index for index, item in enumerate(raw) if not item[3]), len(raw) - 1)
-    return [DerivedRoadmapStep(id=key, titulo=title, descripcion=description, estado="cancelado" if cancelled and index >= current_index else "completado" if done else "actual" if index == current_index else "pendiente", timestamp=timestamp, orden=index + 1) for index, (key, title, description, done, timestamp) in enumerate(raw)]
+    current_index = 4 if finished else next((index for index, item in enumerate(raw) if not item[3]), 4)
+    return [DerivedRoadmapStep(id=key, titulo=title, descripcion=description, estado="cancelado" if cancelled and index >= current_index else "actual" if index == current_index else "completado" if done and index < current_index else "pendiente", timestamp=timestamp, orden=index + 1) for index, (key, title, description, done, timestamp) in enumerate(raw)]
 
 
 def _next_action(request: SolicitudViaje, role: str) -> NextAction:
     trip = request.viaje
     if trip.estado in {"finalizado", "cancelado"} or request.estado == "cancelada":
-        return NextAction(label="Viaje finalizado" if trip.estado == "finalizado" else "Sin acciones disponibles", action="none", enabled=False, reason_disabled="La hoja de ruta está cerrada")
+        return NextAction(id="none", label="Viaje finalizado" if trip.estado == "finalizado" else "Sin acciones disponibles", enabled=False, reason_disabled="La hoja de ruta está cerrada")
     if role == "pasajero":
-        mapping = {"confirmado": ("Confirmar que estoy listo", "listo"), "listo": ("Indicar que llegué", "llegue")}
+        mapping = {"confirmado": ("Confirmar que estoy listo", "listo")}
         label, action = mapping.get(request.estado_pasajero, ("Abrir chat", "chat"))
-        return NextAction(label=label, action=action)
+        return NextAction(id=action, label=label)
     mapping = {
-        "publicado": ("Preparar salida", "preparar-salida"), "completo": ("Preparar salida", "preparar-salida"), "programado": ("Preparar salida", "preparar-salida"),
-        "preparando_salida": ("Salir hacia el punto", "salir"), "conductor_en_camino": ("Llegué", "llegar"),
-        "conductor_en_punto": ("Confirmar pasajero recogido", "recoger"), "abordaje": ("Iniciar viaje", "iniciar"),
-        "en_curso": ("Finalizar viaje", "finalizar"), "pausado": ("Reanudar viaje", "reanudar"),
+        "publicado": ("Salir hacia el punto", "preparar-salida"), "completo": ("Salir hacia el punto", "preparar-salida"), "programado": ("Salir hacia el punto", "preparar-salida"),
+        "preparando_salida": ("Salir hacia el punto", "salir"),
+        "conductor_en_camino": ("Abrir chat", "chat"), "conductor_en_punto": ("Iniciar viaje", "iniciar"), "abordaje": ("Iniciar viaje", "iniciar"),
+        "en_curso": ("Finalizar viaje", "finalizar"), "pausado": ("Finalizar viaje", "finalizar"),
     }
     label, action = mapping.get(trip.estado, ("Sin acciones disponibles", "none"))
-    if trip.estado == "conductor_en_punto" and request.estado_pasajero == "recogido":
-        label, action = "Confirmar pasajero abordado", "abordar"
-    return NextAction(label=label, action=action, enabled=action != "none", confirmation_required=action in {"finalizar"})
+    return NextAction(id=action, label=label, enabled=action != "none", confirmation_required=action in {"finalizar"})
 
 
 def get_roadmap(db: Session, reservation_id: int, user_id: int) -> RoadmapResponse:
@@ -151,8 +152,16 @@ def get_roadmap(db: Session, reservation_id: int, user_id: int) -> RoadmapRespon
         vehiculo=RoadmapVehiculo(id=trip.vehiculo.id, marca=trip.vehiculo.marca, modelo=trip.vehiculo.modelo, color=trip.vehiculo.color, matricula=trip.vehiculo.matricula) if trip.vehiculo else None,
         punto_encuentro=RoadmapMeetingPoint(estado=request.estado_punto_encuentro, nombre_publico="Punto de encuentro" if request.punto_encuentro_propuesto else None, zona_general=request.punto_encuentro_propuesto, latitud=float(request.punto_encuentro_latitud) if request.estado != "cancelada" and request.punto_encuentro_latitud is not None else None, longitud=float(request.punto_encuentro_longitud) if request.estado != "cancelada" and request.punto_encuentro_longitud is not None else None),
         paradas=_synthetic_stops(request),
-        hoja_ruta=_derived_timeline(request),
-        ocupacion=RoadmapOccupancy(ocupados=trip.cupos_totales-trip.cupos_disponibles, totales=trip.cupos_totales, pendientes=pending),
+        hoja_ruta=_derived_timeline(request, events),
+        ocupacion=RoadmapOccupancy(
+            ocupados=trip.cupos_totales-trip.cupos_disponibles,
+            abordo=db.scalar(select(func.count(SolicitudViaje.id)).where(
+                SolicitudViaje.viaje_id == trip.id,
+                SolicitudViaje.estado_pasajero.in_({"abordo", "completado"}),
+            )) or 0,
+            totales=trip.cupos_totales,
+            pendientes=pending,
+        ),
         eventos=[RoadmapEvent(id=e.id, reserva_id=e.reserva_id, tipo=e.tipo, descripcion_publica=e.descripcion_publica, metadata=e.metadata_evento, created_at=e.created_at) for e in events],
         estado_pasajero=PassengerStatus(estado=request.estado_pasajero, nombre=request.pasajero.nombre), proxima_accion=_next_action(request, role),
         permisos=RoadmapPermissions(puede_operar_viaje=False, puede_actualizar_estado_propio=False, puede_ver_puntos_exactos=request.estado != "cancelada", puede_ver_chat=bool(request.conversacion), puede_ver_punto_exacto=request.estado != "cancelada", puede_modificar_viaje=False),
@@ -166,12 +175,12 @@ def trip_action(db: Session, trip_id: int, user_id: int, action: str) -> tuple[R
     trip = db.scalar(select(Viaje).where(Viaje.id == trip_id).with_for_update())
     if not trip or trip.creador_id != user_id:
         raise HTTPException(status_code=404, detail="Viaje no encontrado")
-    request = db.scalar(select(SolicitudViaje).where(SolicitudViaje.viaje_id == trip_id, SolicitudViaje.estado == "aceptada").order_by(SolicitudViaje.id).with_for_update())
+    request = db.scalar(select(SolicitudViaje).where(SolicitudViaje.viaje_id == trip_id, SolicitudViaje.estado.in_({"aceptada", "finalizada"})).order_by(SolicitudViaje.id).with_for_update())
     if not request:
         raise HTTPException(status_code=409, detail="El viaje no tiene reservas aceptadas")
     allowed, target, kind, description = config
     if trip.estado == target:
-        return get_roadmap(db, request.id, user_id), {"type": "trip.status.changed", "data": {"estado": target}}
+        return get_roadmap(db, request.id, user_id), {"type": "trip.status.changed", "data": {"estado": target}, "messages": [], "created": False}
     if trip.estado not in allowed:
         raise HTTPException(status_code=409, detail=f"No se puede ejecutar la acción desde {trip.estado}")
     if action == "iniciar":
@@ -182,12 +191,20 @@ def trip_action(db: Session, trip_id: int, user_id: int, action: str) -> tuple[R
     if target == "finalizado":
         for accepted in db.scalars(select(SolicitudViaje).where(SolicitudViaje.viaje_id == trip_id, SolicitudViaje.estado == "aceptada")):
             accepted.estado = "finalizada"; accepted.estado_pasajero = "completado"
-    _event(db, request, user_id, kind, description, f"trip:{trip_id}:{kind}")
+    event, messages, created = _event(db, request, user_id, kind, description, f"trip:{trip_id}:{kind}")
+    if created:
+        for related in db.scalars(select(SolicitudViaje).where(
+            SolicitudViaje.viaje_id == trip_id,
+            SolicitudViaje.estado.in_({"aceptada", "finalizada"}),
+            SolicitudViaje.id != request.id,
+        )):
+            if related.conversacion:
+                messages.append(add_system_message(db, related.conversacion, description, f"system:roadmap:trip:{trip_id}:{kind}"))
     try:
         db.commit()
     except SQLAlchemyError:
         db.rollback(); raise
-    return get_roadmap(db, request.id, user_id), {"type": "trip.status.changed", "data": {"estado": target, "viaje_id": trip_id}}
+    return get_roadmap(db, request.id, user_id), {"type": "trip.status.changed", "data": {"estado": target, "viaje_id": trip_id, "evento_id": event.id}, "messages": messages, "created": created}
 
 
 def passenger_action(db: Session, reservation_id: int, user_id: int, action: str) -> tuple[RoadmapResponse, dict]:
@@ -200,17 +217,24 @@ def passenger_action(db: Session, reservation_id: int, user_id: int, action: str
     if (is_driver_action and request.viaje.creador_id != user_id) or (not is_driver_action and request.pasajero_id != user_id):
         raise HTTPException(status_code=404, detail="Reserva no encontrada")
     if request.estado_pasajero == target:
-        return get_roadmap(db, request.id, user_id), {"type": "passenger.status.changed", "data": {"estado": target}}
+        return get_roadmap(db, request.id, user_id), {"type": "passenger.status.changed", "data": {"estado": target}, "messages": [], "created": False}
     if request.estado_pasajero not in allowed:
         raise HTTPException(status_code=409, detail=f"No se puede ejecutar la acción desde {request.estado_pasajero}")
     if is_driver_action and request.viaje.estado not in {"conductor_en_punto", "abordaje"}:
         raise HTTPException(status_code=409, detail="El conductor todavía no está en el punto")
     request.estado_pasajero = target
+    pickup_stop = db.scalar(select(ParadaViaje).where(
+        ParadaViaje.reserva_id == request.id,
+        ParadaViaje.tipo == "recogida",
+    ))
+    if pickup_stop and target in {"llego_al_punto", "recogido", "abordo"}:
+        pickup_stop.estado = "completada" if target == "abordo" else "actual"
     if target == "abordo":
         request.viaje.estado = "abordaje"
-    _event(db, request, user_id, kind, description, f"reservation:{request.id}:{kind}")
+    public_description = description.replace("El pasajero", request.pasajero.nombre)
+    event, messages, created = _event(db, request, user_id, kind, public_description, f"reservation:{request.id}:{kind}")
     try:
         db.commit()
     except SQLAlchemyError:
         db.rollback(); raise
-    return get_roadmap(db, request.id, user_id), {"type": "passenger.status.changed", "data": {"estado": target, "reserva_id": request.id}}
+    return get_roadmap(db, request.id, user_id), {"type": "passenger.status.changed", "data": {"estado": target, "reserva_id": request.id, "evento_id": event.id}, "messages": messages, "created": created}

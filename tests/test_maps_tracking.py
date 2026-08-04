@@ -4,6 +4,7 @@ from typing import Any
 from uuid import uuid4
 
 from fastapi.testclient import TestClient
+from app.schemas.map_schema import RouteResponse
 
 
 def mobility_flow(client: TestClient, auth_headers, create_vehicle) -> dict[str, Any]:
@@ -34,6 +35,12 @@ def mobility_flow(client: TestClient, auth_headers, create_vehicle) -> dict[str,
     request = client.post(f"/viajes/{trip['id']}/solicitudes", headers=passenger, json={}).json()
     client.patch(f"/solicitudes/{request['id']}/aceptar", headers=driver)
     return {"driver": driver, "passenger": passenger, "outsider": outsider, "trip": trip, "request": request}
+
+
+def move_driver_to_tracking_state(client: TestClient, flow: dict[str, Any]) -> None:
+    trip_id = flow["trip"]["id"]
+    assert client.post(f"/viajes/{trip_id}/acciones/preparar-salida", headers=flow["driver"]).status_code == 200
+    assert client.post(f"/viajes/{trip_id}/acciones/salir", headers=flow["driver"]).status_code == 200
 
 
 def test_trip_coordinates_are_validated(client, auth_headers, create_vehicle):
@@ -71,6 +78,7 @@ def test_meeting_point_proposal_confirmation_and_security(client, auth_headers, 
 def test_tracking_lifecycle_location_and_authorization(client, auth_headers, create_vehicle):
     flow = mobility_flow(client, auth_headers, create_vehicle)
     trip_id = flow["trip"]["id"]
+    move_driver_to_tracking_state(client, flow)
     assert client.post(f"/viajes/{trip_id}/seguimiento/iniciar", headers=flow["passenger"]).status_code == 404
     started = client.post(f"/viajes/{trip_id}/seguimiento/iniciar", headers=flow["driver"])
     assert started.status_code == 200
@@ -90,6 +98,7 @@ def test_tracking_lifecycle_location_and_authorization(client, auth_headers, cre
 def test_location_websocket_ticket_and_broadcast(client, auth_headers, create_vehicle):
     flow = mobility_flow(client, auth_headers, create_vehicle)
     trip_id = flow["trip"]["id"]
+    move_driver_to_tracking_state(client, flow)
     client.post(f"/viajes/{trip_id}/seguimiento/iniciar", headers=flow["driver"])
     client.patch(f"/viajes/{trip_id}/seguimiento/compartir", headers=flow["driver"], json={"enabled": True})
     publisher = client.post(f"/viajes/{trip_id}/ubicacion/ws-ticket", headers=flow["driver"]).json()
@@ -101,3 +110,33 @@ def test_location_websocket_ticket_and_broadcast(client, auth_headers, create_ve
         pub.send_json({"type": "location.update", "data": {"latitude": -25.28, "longitude": -57.57, "accuracy": 8}})
         assert pub.receive_json()["type"] == "location.updated"
         assert sub.receive_json()["type"] == "location.updated"
+
+
+def test_next_stop_eta_uses_route_cache_and_keeps_authorization(client, auth_headers, create_vehicle, monkeypatch):
+    flow = mobility_flow(client, auth_headers, create_vehicle)
+    trip_id = flow["trip"]["id"]
+    request_id = flow["request"]["id"]
+    move_driver_to_tracking_state(client, flow)
+    calls = 0
+
+    async def fake_route(origin, destination):
+        nonlocal calls
+        calls += 1
+        assert origin.latitude == -25.28
+        assert destination.latitude is not None
+        return RouteResponse(distance_km=2.8, duration_minutes=7)
+
+    monkeypatch.setattr("app.services.map_service.route", fake_route)
+    client.post(f"/viajes/{trip_id}/seguimiento/iniciar", headers=flow["driver"])
+    client.patch(f"/viajes/{trip_id}/seguimiento/compartir", headers=flow["driver"], json={"enabled": True})
+    client.post(f"/viajes/{trip_id}/ubicacion", headers=flow["driver"], json={"latitude": -25.28, "longitude": -57.57, "accuracy": 10})
+
+    first = client.get(f"/reservas/{request_id}/ubicacion-contexto", headers=flow["passenger"])
+    second = client.get(f"/reservas/{request_id}/ubicacion-contexto", headers=flow["passenger"])
+    assert first.status_code == 200
+    assert first.json()["estado"] == "disponible"
+    assert first.json()["distancia_metros"] == 2800
+    assert first.json()["duracion_segundos"] == 420
+    assert second.status_code == 200
+    assert calls == 1
+    assert client.get(f"/reservas/{request_id}/ubicacion-contexto", headers=flow["outsider"]).status_code == 404

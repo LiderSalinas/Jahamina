@@ -15,6 +15,7 @@ import type {
   MeetingPoint,
   Tracking,
   CurrentLocation,
+  LocationEta,
   Roadmap,
 } from "@/lib/types";
 
@@ -306,15 +307,16 @@ export const api = {
   resumeTracking(id: number, token: string): Promise<Tracking> { return request(`/viajes/${id}/seguimiento/reanudar`, { method: "PATCH" }, token); },
   finishTracking(id: number, token: string): Promise<Tracking> { return request(`/viajes/${id}/seguimiento/finalizar`, { method: "PATCH" }, token); },
   shareLocation(id: number, enabled: boolean, token: string): Promise<Tracking> { return request(`/viajes/${id}/seguimiento/compartir`, { method: "PATCH", body: JSON.stringify({ enabled }) }, token); },
-  sendLocation(id: number, payload: { latitude: number; longitude: number; accuracy: number; speed?: number | null; heading?: number | null; client_timestamp: string }, token: string): Promise<CurrentLocation> { return request(`/viajes/${id}/ubicacion`, { method: "POST", body: JSON.stringify(payload) }, token); },
+  sendLocation(id: number, payload: { latitude: number; longitude: number; accuracy: number; speed?: number | null; heading?: number | null; client_timestamp: string; sequence?: number }, token: string): Promise<CurrentLocation> { return request(`/viajes/${id}/ubicacion`, { method: "POST", body: JSON.stringify(payload) }, token); },
   currentLocation(id: number, token: string): Promise<CurrentLocation> { return request(`/viajes/${id}/ubicacion-actual`, {}, token); },
+  locationContext(id: number, token: string): Promise<LocationEta> { return request(`/reservas/${id}/ubicacion-contexto`, {}, token); },
   async locationWebSocketUrl(id: number, token: string): Promise<{ url: string; role: "publisher" | "subscriber" }> {
     const response = await request<{ ticket: string; role: "publisher" | "subscriber" }>(`/viajes/${id}/ubicacion/ws-ticket`, { method: "POST" }, token);
     return { url: buildWebSocketUrl(`/ws/ubicacion?ticket=${encodeURIComponent(response.ticket)}`), role: response.role };
   },
   roadmap(id: number, token: string): Promise<Roadmap> { return request(`/reservas/${id}/hoja-ruta`, {}, token); },
   roadmapAction(data: Roadmap, token: string): Promise<Roadmap> {
-    const action = data.proxima_accion.action;
+    const action = data.proxima_accion.id;
     const tripAction = data.reserva.rol_actual === "conductor" && !["recoger", "abordar"].includes(action);
     const path = tripAction ? `/viajes/${data.viaje.id}/acciones/${action}` : `/reservas/${data.reserva.id}/acciones/${action}`;
     return request(path, { method: "POST" }, token);

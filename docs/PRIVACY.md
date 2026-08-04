@@ -13,3 +13,5 @@ Limitaciones reales:
 - una posición antigua se presenta como desactualizada;
 - no hay navegación giro a giro ni ETA inventada;
 - los servicios geográficos públicos son apropiados para desarrollo, no para producción.
+
+La ETA se calcula únicamente desde la última posición vigente hacia la próxima parada autorizada. Las respuestas quedan en caché durante pocos segundos y no forman un recorrido histórico. Al pausar se conserva la última posición marcada como pausada/desactualizable; al detener o finalizar se elimina la posición activa de Redis.

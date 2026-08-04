@@ -20,7 +20,11 @@ from app.schemas.chat_schema import (
 from app.core.settings import settings
 
 SYSTEM_ACCEPTED = "La reserva fue aceptada. Ya pueden coordinar el viaje."
-WRITABLE_TRIP_STATES = {"publicado", "completo", "en_curso"}
+WRITABLE_TRIP_STATES = {
+    "publicado", "completo", "programado", "preparando_salida",
+    "conductor_en_camino", "conductor_en_punto", "abordaje",
+    "en_curso", "pausado",
+}
 
 
 def _conversation_query():

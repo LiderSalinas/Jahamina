@@ -39,6 +39,7 @@ class Settings(BaseSettings):
     location_rate_limit_window_seconds: int = 10
     location_max_payload_bytes: int = 4096
     location_max_connections_per_user: int = 3
+    location_eta_cache_seconds: int = 15
 
     model_config = SettingsConfigDict(
         env_file=".env",

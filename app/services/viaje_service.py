@@ -6,6 +6,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from app.models.solicitud_viaje import SolicitudViaje
+from app.models.evento_viaje import EventoViaje
 from app.models.vehiculo import Vehiculo
 from app.models.viaje_model import Viaje
 from app.schemas.viaje_schema import ViajeCreate
@@ -83,6 +84,15 @@ def cancelar_viaje(db: Session, viaje_id: int, usuario_id: int):
         )
     viaje.cancelado = True
     viaje.estado = "cancelado"
+    if not db.scalar(select(EventoViaje).where(EventoViaje.idempotency_key == f"trip:{viaje.id}:viaje_cancelado")):
+        db.add(EventoViaje(
+            viaje_id=viaje.id,
+            actor_id=usuario_id,
+            tipo="viaje_cancelado",
+            descripcion_publica="El viaje fue cancelado.",
+            metadata_evento={},
+            idempotency_key=f"trip:{viaje.id}:viaje_cancelado",
+        ))
     solicitudes = list(
         db.scalars(
             select(SolicitudViaje).where(

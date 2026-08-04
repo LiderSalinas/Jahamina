@@ -11,10 +11,18 @@ from app.core.redis import consume_location_ticket, create_location_ticket, get_
 from app.core.security import get_current_user
 from app.core.settings import settings
 from app.models.usuario import Usuario
-from app.schemas.tracking_schema import CurrentLocation, LocationTicketResponse, LocationUpdate, SharingUpdate, TrackingResponse
-from app.services import tracking_service
+from app.schemas.tracking_schema import CurrentLocation, LocationEtaResponse, LocationTicketResponse, LocationUpdate, SharingUpdate, TrackingResponse
+from app.services import eta_service, tracking_service
 
 router = APIRouter()
+
+
+async def _publish_location_event(trip_id: int, event_type: str, data: dict | None = None) -> None:
+    redis = get_redis_client()
+    try:
+        await redis.publish(f"location:{trip_id}", json.dumps({"type": event_type, "data": data or {}, "timestamp": datetime.now(timezone.utc).isoformat()}))
+    finally:
+        await redis.aclose()
 
 
 @router.post("/viajes/{trip_id}/seguimiento/iniciar", response_model=TrackingResponse)
@@ -23,13 +31,17 @@ def start(trip_id: int, db: Session = Depends(get_db), user: Usuario = Depends(g
 
 
 @router.patch("/viajes/{trip_id}/seguimiento/pausar", response_model=TrackingResponse)
-def pause(trip_id: int, db: Session = Depends(get_db), user: Usuario = Depends(get_current_user)):
-    return tracking_service.transition(db, trip_id, user.id, "pausar")
+async def pause(trip_id: int, db: Session = Depends(get_db), user: Usuario = Depends(get_current_user)):
+    result = tracking_service.transition(db, trip_id, user.id, "pausar")
+    await _publish_location_event(trip_id, "location.paused")
+    return result
 
 
 @router.patch("/viajes/{trip_id}/seguimiento/reanudar", response_model=TrackingResponse)
-def resume(trip_id: int, db: Session = Depends(get_db), user: Usuario = Depends(get_current_user)):
-    return tracking_service.transition(db, trip_id, user.id, "reanudar")
+async def resume(trip_id: int, db: Session = Depends(get_db), user: Usuario = Depends(get_current_user)):
+    result = tracking_service.transition(db, trip_id, user.id, "reanudar")
+    await _publish_location_event(trip_id, "location.resumed")
+    return result
 
 
 @router.patch("/viajes/{trip_id}/seguimiento/finalizar", response_model=TrackingResponse)
@@ -45,8 +57,12 @@ async def finish(trip_id: int, db: Session = Depends(get_db), user: Usuario = De
 
 
 @router.patch("/viajes/{trip_id}/seguimiento/compartir", response_model=TrackingResponse)
-def sharing(trip_id: int, data: SharingUpdate, db: Session = Depends(get_db), user: Usuario = Depends(get_current_user)):
-    return tracking_service.set_sharing(db, trip_id, user.id, data.enabled)
+async def sharing(trip_id: int, data: SharingUpdate, db: Session = Depends(get_db), user: Usuario = Depends(get_current_user)):
+    result = tracking_service.set_sharing(db, trip_id, user.id, data.enabled)
+    if not data.enabled:
+        await tracking_service.clear_location(trip_id)
+    await _publish_location_event(trip_id, "location.resumed" if data.enabled else "location.stopped")
+    return result
 
 
 @router.get("/viajes/{trip_id}/seguimiento", response_model=TrackingResponse)
@@ -61,6 +77,11 @@ def get_tracking(trip_id: int, db: Session = Depends(get_db), user: Usuario = De
 @router.get("/viajes/{trip_id}/ubicacion-actual", response_model=CurrentLocation)
 async def current_location(trip_id: int, db: Session = Depends(get_db), user: Usuario = Depends(get_current_user)):
     return await tracking_service.get_location(db, trip_id, user.id)
+
+
+@router.get("/reservas/{reservation_id}/ubicacion-contexto", response_model=LocationEtaResponse)
+async def location_context(reservation_id: int, db: Session = Depends(get_db), user: Usuario = Depends(get_current_user)):
+    return await eta_service.next_stop_eta(db, reservation_id, user.id)
 
 
 @router.post("/viajes/{trip_id}/ubicacion", response_model=CurrentLocation)
@@ -117,6 +138,12 @@ async def location_websocket(websocket: WebSocket, ticket: str = Query(...), db:
                     await websocket.send_json({"type": "pong", "data": {}, "timestamp": datetime.now(timezone.utc).isoformat()})
                 elif event_type == "location.update" and role == "publisher":
                     await tracking_service.save_location(db, trip_id, user_id, LocationUpdate.model_validate(event.get("data", {})))
+                elif event_type == "location.pause" and role == "publisher":
+                    tracking_service.transition(db, trip_id, user_id, "pausar")
+                    await _publish_location_event(trip_id, "location.paused")
+                elif event_type == "location.resume" and role == "publisher":
+                    tracking_service.transition(db, trip_id, user_id, "reanudar")
+                    await _publish_location_event(trip_id, "location.resumed")
                 else:
                     await websocket.send_json({"type": "error", "data": {"detail": "Evento no permitido"}, "timestamp": datetime.now(timezone.utc).isoformat()})
             except (ValueError, ValidationError, HTTPException) as error:

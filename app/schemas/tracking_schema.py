@@ -57,3 +57,16 @@ class LocationTicketResponse(BaseModel):
     ticket: str
     role: Literal["publisher", "subscriber"]
     expires_in: int
+
+
+class LocationEtaResponse(BaseModel):
+    ubicacion: CurrentLocation | None = None
+    parada_id: int | None = None
+    parada_nombre: str | None = None
+    distancia_metros: int | None = None
+    distancia_texto: str | None = None
+    duracion_segundos: int | None = None
+    eta_aproximada: datetime | None = None
+    proveedor: str | None = None
+    calculado_en: datetime | None = None
+    estado: Literal["disponible", "no_disponible", "desactualizado", "error"]

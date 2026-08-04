@@ -12,6 +12,7 @@ viajes y participaciones conservando el historial mediante cancelación lógica.
 - Creación, listado y cancelación lógica de viajes.
 - Vehículos propios, cupos y aprobación de solicitudes.
 - Chat privado en tiempo real para reservas aceptadas.
+- Hoja de ruta operativa con acciones por rol, eventos persistentes y actualización WebSocket.
 - Validación de fechas, ubicaciones y permisos.
 - Swagger, healthcheck, migraciones Alembic y pruebas automatizadas.
 
@@ -272,3 +273,6 @@ Completar con el nombre del responsable del repositorio.
 # Hoja de ruta de reservas
 
 Una reserva aceptada dispone de una vista operativa en `/reservas/{id}` con estado, próxima acción autorizada, paradas, ocupación, eventos y chat. El prototipo de comparación permanece en `/dev/hoja-ruta`. La fase actual no añade GPS en vivo ni navegación giro a giro.
+# Ubicación del conductor
+
+El conductor comparte ubicación solo tras una acción explícita y permiso del navegador. Redis distribuye la posición activa y PostgreSQL conserva únicamente la última posición de la sesión. La ETA hacia la próxima parada usa OSRM configurable y caché corta. Para probar desde un teléfono, use HTTPS de desarrollo: la geolocalización web suele estar bloqueada en orígenes HTTP de red local.

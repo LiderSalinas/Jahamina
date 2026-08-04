@@ -28,10 +28,18 @@ def test_both_participants_get_consolidated_roadmap_and_outsider_is_hidden(clien
         assert body["conductor"]["nombre"] == "Rubén"
         assert body["pasajero_actual"]["nombre"] == "Ramón"
         assert body["vehiculo"]["marca"] == "Toyota"
-        assert body["ocupacion"] == {"ocupados": 1, "totales": 3, "pendientes": 0}
-        assert [stop["tipo"] for stop in body["paradas"]] == ["origen", "destino"]
+        assert body["ocupacion"] == {"ocupados": 1, "abordo": 0, "totales": 3, "pendientes": 0}
+        assert [stop["tipo"] for stop in body["paradas"]] == ["origen", "recogida", "destino"]
         assert body["hoja_ruta"][0]["id"] == "reserva-confirmada"
         assert body["hoja_ruta"][0]["estado"] == "completado"
+        assert [step["titulo"] for step in body["hoja_ruta"]] == [
+            "Reserva confirmada",
+            "Punto de encuentro",
+            "Conductor en camino",
+            "Viaje en curso",
+            "Viaje finalizado",
+        ]
+        assert len(body["hoja_ruta"]) == 5
         assert body["eventos"][0]["tipo"] == "reserva_confirmada"
         assert "hashed_password" not in response.text
         assert "email" not in response.text
@@ -79,17 +87,54 @@ def test_state_machine_permissions_idempotency_and_system_messages(client, auth_
     assert client.post(f"/viajes/{trip['id']}/acciones/iniciar", headers=driver).status_code == 409
     assert client.post(f"/viajes/{trip['id']}/acciones/salir", headers=driver).status_code == 200
     assert client.post(f"/viajes/{trip['id']}/acciones/llegar", headers=driver).status_code == 200
+    arrived = client.post(f"/reservas/{reservation_id}/acciones/llegue", headers=passenger)
+    assert arrived.status_code == 200 and arrived.json()["estado_pasajero"]["estado"] == "llego_al_punto"
     assert client.post(f"/reservas/{reservation_id}/acciones/recoger", headers=driver).status_code == 200
     boarded = client.post(f"/reservas/{reservation_id}/acciones/abordar", headers=driver)
     assert boarded.status_code == 200 and boarded.json()["viaje"]["estado"] == "abordaje"
+    assert boarded.json()["ocupacion"]["abordo"] == 1
+    assert boarded.json()["paradas"][1]["estado"] == "completada"
     assert client.post(f"/viajes/{trip['id']}/acciones/iniciar", headers=driver).status_code == 200
     assert client.post(f"/viajes/{trip['id']}/acciones/pausar", headers=driver).status_code == 200
     assert client.post(f"/viajes/{trip['id']}/acciones/reanudar", headers=driver).status_code == 200
     finished = client.post(f"/viajes/{trip['id']}/acciones/finalizar", headers=driver)
     assert finished.status_code == 200 and finished.json()["viaje"]["estado"] == "finalizado"
+    assert client.post(f"/viajes/{trip['id']}/acciones/finalizar", headers=driver).status_code == 200
     assert client.post(f"/reservas/{reservation_id}/acciones/listo", headers=passenger).status_code == 409
     events = finished.json()["eventos"]
     assert len([event for event in events if event["tipo"] == "pasajero_listo"]) == 1
+    assert len([event for event in events if event["tipo"] == "viaje_finalizado"]) == 1
     conversation = client.get(f"/reservas/{reservation_id}/conversacion", headers=passenger).json()
     messages = client.get(f"/conversaciones/{conversation['id']}/mensajes", headers=passenger).json()["items"]
     assert any(message["tipo"] == "sistema" and "viaje" in message["contenido"].lower() for message in messages)
+    assert len([message for message in messages if message["client_message_id"] == f"system:roadmap:reservation:{reservation_id}:pasajero_listo"]) == 1
+
+
+def test_real_roadmap_keeps_the_five_stage_experience():
+    from pathlib import Path
+
+    source = Path("frontend/components/trip-roadmap/RealTripRoadmap.tsx").read_text(encoding="utf-8")
+    assert ".slice(0, 5)" in source
+    assert "LiveLocationPanel" not in source
+    assert "TripPassengerProgress" not in source
+    assert "TripStopList" not in source
+    assert "Abrir chat" in source
+
+
+def test_action_publishes_roadmap_and_chat_after_commit(client, auth_headers, create_vehicle, monkeypatch):
+    from unittest.mock import AsyncMock
+    from app.api.routes import roadmap
+
+    _driver, passenger, _trip, request = _accepted(client, auth_headers, create_vehicle, "publish")
+    roadmap_publish = AsyncMock()
+    chat_publish = AsyncMock()
+    monkeypatch.setattr(roadmap, "publish_roadmap_event", roadmap_publish)
+    monkeypatch.setattr(roadmap, "publish_chat_event", chat_publish)
+    response = client.post(f"/reservas/{request['id']}/acciones/listo", headers=passenger)
+    assert response.status_code == 200
+    published_types = [call.args[1]["type"] for call in roadmap_publish.await_args_list]
+    assert "passenger.status.changed" in published_types
+    assert "trip.event.created" in published_types
+    assert "roadmap.updated" in published_types
+    assert chat_publish.await_count == 1
+    assert chat_publish.await_args.args[1]["type"] == "message.created"

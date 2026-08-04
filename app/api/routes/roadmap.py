@@ -8,11 +8,12 @@ from sqlalchemy.orm import Session
 from app.core.db import SessionLocal, get_db
 from app.core.redis import (
     consume_roadmap_ticket, create_roadmap_ticket, get_redis_client,
-    publish_roadmap_event,
+    publish_chat_event, publish_roadmap_event,
 )
 from app.core.security import get_current_user
 from app.core.settings import settings
 from app.models.usuario import Usuario
+from app.schemas.chat_schema import MessageResponse
 from app.schemas.roadmap_schema import RoadmapResponse, RoadmapTicketResponse
 from app.services import roadmap_service
 
@@ -32,8 +33,25 @@ async def roadmap_ticket(reserva_id: int, db: Session = Depends(get_db), user: U
 
 
 async def _publish(response: RoadmapResponse, event: dict) -> RoadmapResponse:
-    event["timestamp"] = datetime.now(timezone.utc).isoformat()
-    await publish_roadmap_event(response.viaje.id, event)
+    messages = event.pop("messages", [])
+    created = event.pop("created", False)
+    timestamp = datetime.now(timezone.utc).isoformat()
+    event["timestamp"] = timestamp
+    events = [event]
+    if created:
+        events.append({"type": "trip.event.created", "data": event["data"], "timestamp": timestamp})
+    if event["type"] == "passenger.status.changed":
+        events.append({"type": "trip.stop.updated", "data": event["data"], "timestamp": timestamp})
+        if event["data"].get("estado") == "abordo":
+            events.append({"type": "trip.occupancy.changed", "data": response.ocupacion.model_dump(), "timestamp": timestamp})
+    events.append({"type": "roadmap.updated", "data": {"reserva_id": response.reserva.id, "viaje_id": response.viaje.id}, "timestamp": timestamp})
+    for roadmap_event in events:
+        await publish_roadmap_event(response.viaje.id, roadmap_event)
+    for message in messages:
+        await publish_chat_event(
+            message.conversacion_id,
+            {"type": "message.created", "data": MessageResponse.model_validate(message).model_dump(mode="json"), "timestamp": timestamp},
+        )
     return response
 
 

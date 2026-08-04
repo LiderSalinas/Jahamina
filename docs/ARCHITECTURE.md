@@ -81,4 +81,9 @@ tickets y el tiempo real fallan cerrados. `20260730_0003` agrega las tablas e
 `map_service` abstrae geocodificación y rutas HTTP configurables. Redis limita y cachea consultas. `SeguimientoViaje` conserva el ciclo y solo la última posición en PostgreSQL; Redis mantiene la posición activa, tickets y Pub/Sub. El WebSocket separa publisher (conductor) y subscriber (pasajero aceptado). `20260731_0004` agrega columnas geográficas, acuerdo de encuentro y seguimiento sin reemplazar migraciones anteriores.
 # Hoja de ruta operativa
 
+Los mensajes de sistema se guardan en la misma transacción y se publican al chat después del commit. `roadmap:{viaje_id}` distribuye cambios de viaje, pasajero, parada, ocupación y `roadmap.updated` entre instancias.
+
 `roadmap_service` centraliza autorización, transición de estados, eventos idempotentes, mensajes de sistema y el contrato de lectura. `ParadaViaje` ordena origen/recogidas/destino y `EventoViaje` conserva la cronología sin datos privados en metadata. Las rutas confirman la transacción antes de publicar el evento por Redis. El frontend vuelve a consultar el contrato consolidado ante cada evento WebSocket.
+# Ubicación activa
+
+PostgreSQL conserva una sesión y su última posición, no un historial. Redis conserva la posición activa, rate limiting, tickets y Pub/Sub. `eta_service` obtiene la próxima parada autorizada desde la hoja de ruta y consulta `map_service`/OSRM con caché corta. El frontend solicita permiso explícito, mantiene un solo `watchPosition` y recupera el contexto REST tras reconectar.

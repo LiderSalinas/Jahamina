@@ -117,3 +117,6 @@ NEXT_PUBLIC_API_URL=https://api.example
 ## Desarrollo móvil en LAN
 
 Next.js carga `frontend/.env.local`; Docker Compose interpola por defecto el `.env` de la raíz. Los archivos `*.example` son plantillas y no se cargan automáticamente. Para otro dispositivo usa `NEXT_PUBLIC_API_URL=http://IP_DEL_EQUIPO:8000`, agrega `http://IP_DEL_EQUIPO:3000` a `CORS_ORIGINS` e inicia Next con `npx next dev -H 0.0.0.0 -p 3000`. Reinicia ambos procesos tras cambiar variables. No uses `localhost` como URL de API desde el teléfono.
+# Geolocalización móvil en desarrollo
+
+Los navegadores móviles normalmente exigen HTTPS para `navigator.geolocation` fuera de `localhost`. Use un proxy/túnel HTTPS de desarrollo o certificados locales confiables fuera del repositorio; configure las URLs HTTPS/WSS y el origen exacto en CORS. No versione certificados ni claves. Compruebe primero `/health`, luego inicie el frontend enlazado a `0.0.0.0` y acepte el permiso únicamente al pulsar **Compartir ubicación**.

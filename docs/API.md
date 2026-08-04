@@ -186,6 +186,15 @@ Eventos cliente: `message.send`, `message.read`, `typing.start`, `typing.stop`,
 El WebSocket emite `connected`, `location.updated`, `tracking.finished`, `error` y `pong`; acepta `location.update` y `ping`. Las rutas privadas responden 404 a terceros.
 # Hoja de ruta
 
+## Acciones operativas
+
+`proxima_accion` contiene `id`, `label`, `enabled`, `confirmation_required` y `reason_disabled`; el cliente no calcula transiciones.
+
+- Viaje: `POST /viajes/{id}/acciones/{accion}` para `preparar-salida`, `salir`, `llegar`, `iniciar`, `pausar`, `reanudar` y `finalizar`.
+- Reserva: `POST /reservas/{id}/acciones/{accion}` para `listo`, `llegue`, `recoger` y `abordar`.
+
+Una transición inválida devuelve 409 y un usuario ajeno recibe 404.
+
 ## Contrato consolidado de lectura
 
 `GET /reservas/{id}/hoja-ruta` reúne reserva, viaje, conductor, pasajero actual, vehículo, punto de encuentro, ocupación, cronología y paradas derivadas. Requiere JWT; devuelve 404 a terceros o IDs inexistentes y 409 para una reserva pendiente. No expone email, contraseñas, tokens ni información privada de otros pasajeros.
@@ -199,3 +208,8 @@ La primera integración visual usa este endpoint solo para lectura. No interpret
 - `WS /ws/hoja-ruta?ticket=...`: emite `trip.status.changed`, `passenger.status.changed` y confirma conexión con `connected`.
 
 Las transiciones inválidas devuelven 409; recursos privados no autorizados devuelven 404.
+# Ubicación y ETA de próxima parada
+
+`GET /reservas/{reserva_id}/ubicacion-contexto` requiere JWT y solo responde al conductor o al pasajero aceptado. Devuelve la última posición autorizada, próxima parada, distancia vial, duración y ETA, o un estado `no_disponible`, `desactualizado` o `error`. Usuarios ajenos reciben 404.
+
+El WebSocket `WS /ws/ubicacion?ticket=...` usa tickets efímeros de un solo uso. Acepta `location.update`, `location.pause`, `location.resume` y `ping`; publica `location.updated`, `location.paused`, `location.resumed`, `location.stopped`, `tracking.finished`, `error` y `pong`.

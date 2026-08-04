@@ -60,15 +60,13 @@ def start(db: Session, trip_id: int, user_id: int) -> SeguimientoViaje:
         raise HTTPException(status_code=404, detail="Viaje no encontrado")
     if trip.creador_id != user_id:
         raise HTTPException(status_code=404, detail="Viaje no encontrado")
-    if trip.estado not in {"publicado", "completo"}:
+    if trip.estado not in {"conductor_en_camino", "conductor_en_punto", "abordaje", "en_curso", "pausado"}:
         raise HTTPException(status_code=409, detail="El viaje no puede iniciar seguimiento")
     existing = current_session(db, trip_id)
     if existing and existing.estado in {"activo", "pausado"}:
         raise HTTPException(status_code=409, detail="Ya existe un seguimiento activo")
     now = datetime.now(timezone.utc)
     tracking = SeguimientoViaje(viaje_id=trip_id, conductor_id=user_id, estado="activo", iniciado_en=now, compartir_ubicacion=False)
-    trip.estado = "en_curso"
-    _system_for_trip(db, trip, "El conductor inició el viaje.", "started")
     try:
         db.add(tracking)
         db.commit()
@@ -176,7 +174,7 @@ async def save_location(db: Session, trip_id: int, user_id: int, data: LocationU
 async def get_location(db: Session, trip_id: int, user_id: int) -> CurrentLocation:
     trip = authorized_trip(db, trip_id, user_id)
     tracking = current_session(db, trip_id)
-    if not tracking or not tracking.compartir_ubicacion or tracking.estado != "activo":
+    if not tracking or not tracking.compartir_ubicacion or tracking.estado not in {"activo", "pausado"}:
         raise HTTPException(status_code=404, detail="Ubicación no disponible")
     redis = get_redis_client()
     try:
@@ -190,7 +188,7 @@ async def get_location(db: Session, trip_id: int, user_id: int) -> CurrentLocati
     else:
         raise HTTPException(status_code=404, detail="Ubicación no disponible")
     updated = datetime.fromisoformat(payload["updated_at"]) if isinstance(payload["updated_at"], str) else payload["updated_at"]
-    payload["stale"] = (datetime.now(timezone.utc) - updated).total_seconds() > settings.location_stale_after_seconds
+    payload["stale"] = tracking.estado == "pausado" or (datetime.now(timezone.utc) - updated).total_seconds() > settings.location_stale_after_seconds
     return CurrentLocation.model_validate(payload)
 
 

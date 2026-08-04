@@ -46,6 +46,12 @@ export interface Tracking {
   iniciado_en: string | null; pausado_en: string | null; finalizado_en: string | null; compartir_ubicacion: boolean; ultima_actualizacion_en: string | null;
 }
 export interface CurrentLocation extends GeoPoint { accuracy: number; speed: number | null; heading: number | null; updated_at: string; stale: boolean; }
+export interface LocationEta {
+  ubicacion: CurrentLocation | null; parada_id: number | null; parada_nombre: string | null;
+  distancia_metros: number | null; distancia_texto: string | null; duracion_segundos: number | null;
+  eta_aproximada: string | null; proveedor: string | null; calculado_en: string | null;
+  estado: "disponible" | "no_disponible" | "desactualizado" | "error";
+}
 
 export interface JoinedTrip {
   id: number;
@@ -154,8 +160,8 @@ export interface Roadmap {
   punto_encuentro:{estado:string; nombre_publico:string|null; zona_general:string|null; latitud:number|null; longitud:number|null};
   paradas:RoadmapStopReal[]; eventos:RoadmapEventReal[];
   hoja_ruta:{id:string; titulo:string; descripcion:string; estado:"completado"|"actual"|"pendiente"|"cancelado"; timestamp:string|null; orden:number}[];
-  ocupacion:{ocupados:number; totales:number; pendientes:number};
+  ocupacion:{ocupados:number; abordo:number; totales:number; pendientes:number};
   estado_pasajero:{estado:string; nombre:string};
-  proxima_accion:{label:string; action:string; enabled:boolean; reason_disabled:string|null; confirmation_required:boolean};
+  proxima_accion:{id:string; label:string; enabled:boolean; reason_disabled:string|null; confirmation_required:boolean};
   permisos:{puede_operar_viaje:boolean; puede_actualizar_estado_propio:boolean; puede_ver_puntos_exactos:boolean; puede_ver_chat:boolean; puede_ver_punto_exacto:boolean; puede_modificar_viaje:boolean};
 }

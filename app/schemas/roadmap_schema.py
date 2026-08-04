@@ -79,6 +79,7 @@ class DerivedRoadmapStep(BaseModel):
 
 class RoadmapOccupancy(BaseModel):
     ocupados: int
+    abordo: int
     totales: int
     pendientes: int
 
@@ -89,8 +90,8 @@ class PassengerStatus(BaseModel):
 
 
 class NextAction(BaseModel):
+    id: str
     label: str
-    action: str
     enabled: bool = True
     reason_disabled: str | None = None
     confirmation_required: bool = False

@@ -31,7 +31,7 @@ class SolicitudViaje(Base):
             name="ck_solicitudes_punto_estado",
         ),
         CheckConstraint(
-            "estado_pasajero IN ('confirmado','listo','esperando','recogido',"
+            "estado_pasajero IN ('confirmado','listo','esperando','llego_al_punto','recogido',"
             "'abordo','completado','ausente','cancelado')",
             name="ck_solicitudes_estado_pasajero",
         ),
