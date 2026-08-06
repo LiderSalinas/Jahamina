@@ -5,7 +5,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from app import models as _models  # noqa: F401
-from app.api.routes import auth, chat, maps, meeting, roadmap, solicitudes, tracking, vehiculos, viajes
+from app.api.routes import auth, chat, maps, meeting, notifications, roadmap, solicitudes, tracking, vehiculos, viajes
 from app.core.db import get_db
 from app.core.settings import settings
 
@@ -42,6 +42,7 @@ app.include_router(maps.router, tags=["Mapas"])
 app.include_router(meeting.router, tags=["Punto de encuentro"])
 app.include_router(tracking.router, tags=["Seguimiento"])
 app.include_router(roadmap.router, tags=["Hoja de ruta"])
+app.include_router(notifications.router, tags=["Notificaciones"])
 
 
 @app.get("/health", tags=["Sistema"])

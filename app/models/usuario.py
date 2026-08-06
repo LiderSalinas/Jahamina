@@ -24,3 +24,5 @@ class Usuario(Base):
     )
     mensajes_chat = relationship("Mensaje", back_populates="remitente")
     eventos_viaje = relationship("EventoViaje", back_populates="actor")
+    notificaciones = relationship("Notificacion", back_populates="usuario")
+    suscripciones_push = relationship("SuscripcionPush", back_populates="usuario")

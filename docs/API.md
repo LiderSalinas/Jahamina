@@ -213,3 +213,19 @@ Las transiciones inválidas devuelven 409; recursos privados no autorizados devu
 `GET /reservas/{reserva_id}/ubicacion-contexto` requiere JWT y solo responde al conductor o al pasajero aceptado. Devuelve la última posición autorizada, próxima parada, distancia vial, duración y ETA, o un estado `no_disponible`, `desactualizado` o `error`. Usuarios ajenos reciben 404.
 
 El WebSocket `WS /ws/ubicacion?ticket=...` usa tickets efímeros de un solo uso. Acepta `location.update`, `location.pause`, `location.resume` y `ping`; publica `location.updated`, `location.paused`, `location.resumed`, `location.stopped`, `tracking.finished`, `error` y `pong`.
+# Notificaciones
+
+| Método | Ruta | Descripción |
+|---|---|---|
+| GET | `/notificaciones` | Lista avisos propios y contador no leído. |
+| GET | `/notificaciones/no-leidas` | Lista avisos propios pendientes. |
+| PATCH | `/notificaciones/{id}/leida` | Marca un aviso propio. |
+| PATCH | `/notificaciones/leer-todas` | Marca todos los avisos propios. |
+| GET/POST | `/notificaciones/suscripciones` | Lista o registra dispositivos propios. |
+| DELETE | `/notificaciones/suscripciones/{id}` | Revoca el dispositivo propio. |
+| GET | `/notificaciones/configuracion-push` | Expone solo habilitación y clave VAPID pública. |
+| POST | `/notificaciones/ws-ticket` | Ticket efímero para actualizaciones internas. |
+| WS | `/notificaciones/ws?ticket=...` | Eventos `notification.created`, `connected` y `pong`. |
+
+`POST /notificaciones/prueba` está deshabilitado salvo que
+`WEB_PUSH_TEST_ENABLED=true`; siempre envía únicamente al usuario autenticado.

@@ -138,3 +138,35 @@ def test_action_publishes_roadmap_and_chat_after_commit(client, auth_headers, cr
     assert "roadmap.updated" in published_types
     assert chat_publish.await_count == 1
     assert chat_publish.await_args.args[1]["type"] == "message.created"
+
+
+def test_simplified_driver_flow_uses_three_visible_actions(client, auth_headers, create_vehicle):
+    driver, passenger, trip, request = _accepted(client, auth_headers, create_vehicle, "simple-flow")
+    reservation_id = request["id"]
+    assert client.post(f"/reservas/{reservation_id}/acciones/listo", headers=passenger).status_code == 200
+
+    initial = client.get(f"/reservas/{reservation_id}/hoja-ruta", headers=driver).json()
+    assert initial["proxima_accion"] == {
+        "id": "salir", "label": "Salir hacia el punto", "enabled": True,
+        "reason_disabled": None, "confirmation_required": False,
+    }
+    on_the_way = client.post(f"/viajes/{trip['id']}/acciones/salir", headers=driver)
+    assert on_the_way.status_code == 200
+    assert on_the_way.json()["viaje"]["estado"] == "conductor_en_camino"
+    assert on_the_way.json()["proxima_accion"]["id"] == "iniciar"
+
+    started = client.post(f"/viajes/{trip['id']}/acciones/iniciar", headers=driver)
+    assert started.status_code == 200
+    assert started.json()["viaje"]["estado"] == "en_curso"
+    assert started.json()["estado_pasajero"]["estado"] == "abordo"
+    assert started.json()["proxima_accion"]["id"] == "finalizar"
+
+    finished = client.post(f"/viajes/{trip['id']}/acciones/finalizar", headers=driver)
+    assert finished.status_code == 200
+    assert finished.json()["viaje"]["estado"] == "finalizado"
+    assert len(finished.json()["hoja_ruta"]) == 5
+
+    conversation = client.get(f"/reservas/{reservation_id}/conversacion", headers=passenger).json()
+    messages = client.get(f"/conversaciones/{conversation['id']}/mensajes", headers=passenger).json()["items"]
+    for event in ("conductor_en_camino", "viaje_iniciado", "viaje_finalizado"):
+        assert len([message for message in messages if message["client_message_id"] == f"system:roadmap:trip:{trip['id']}:{event}"]) == 1

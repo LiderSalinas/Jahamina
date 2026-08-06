@@ -15,3 +15,11 @@ Limitaciones reales:
 - los servicios geográficos públicos son apropiados para desarrollo, no para producción.
 
 La ETA se calcula únicamente desde la última posición vigente hacia la próxima parada autorizada. Las respuestas quedan en caché durante pocos segundos y no forman un recorrido histórico. Al pausar se conserva la última posición marcada como pausada/desactualizable; al detener o finalizar se elimina la posición activa de Redis.
+
+La versión actual acepta ubicaciones únicamente dentro de Paraguay. La ubicación del dispositivo requiere consentimiento y se rechaza antes de enviarse si está fuera de los límites operativos; el backend vuelve a validarla de manera independiente.
+# Notificaciones
+
+Las notificaciones contienen únicamente resúmenes operativos y enlaces
+internos. Los endpoints y claves de suscripción Push no se devuelven en listados
+ni deben escribirse en logs. El usuario concede permiso explícitamente y puede
+revocar cada dispositivo. No se usan notificaciones promocionales ni de GPS.

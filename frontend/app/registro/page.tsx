@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
 
 import { api, ApiError } from "@/lib/api";
+import { PasswordField } from "@/components/ui/PasswordField";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -31,30 +32,29 @@ export default function RegisterPage() {
   }
 
   return (
-    <section className="container grid min-h-[calc(100vh-4rem)] place-items-center py-12">
-      <form className="form-card w-full max-w-md space-y-5" onSubmit={submit}>
+    <section className="auth-page">
+      <form className="auth-card" onSubmit={submit}>
         <div>
-          <p className="eyebrow">Nueva comunidad</p>
-          <h1 className="mt-2 text-3xl font-black">Crear cuenta</h1>
+          <span className="auth-mark" aria-hidden>J</span>
+          <p className="eyebrow">Sumate a la comunidad</p>
+          <h1>Creá tu cuenta</h1>
+          <p className="auth-intro">Empezá a compartir trayectos dentro de Paraguay.</p>
         </div>
         {error && <p className="error-message" role="alert">{error}</p>}
         <div className="form-field">
           <label htmlFor="nombre">Nombre</label>
-          <input id="nombre" name="nombre" minLength={2} maxLength={100} required />
+          <input id="nombre" name="nombre" autoComplete="name" minLength={2} maxLength={100} required />
         </div>
         <div className="form-field">
           <label htmlFor="email">Email</label>
-          <input id="email" name="email" type="email" required />
+          <input id="email" name="email" type="email" autoComplete="email" required />
         </div>
-        <div className="form-field">
-          <label htmlFor="password">Contraseña</label>
-          <input id="password" name="password" type="password" minLength={8} maxLength={72} required />
-          <small className="text-slate-500">Entre 8 caracteres y 72 bytes.</small>
-        </div>
+        <PasswordField id="password" name="password" autoComplete="new-password" minLength={8} maxLength={72} required />
+        <small className="field-help">Usá entre 8 y 72 caracteres.</small>
         <button className="button-primary w-full" disabled={loading} type="submit">
           {loading ? "Creando…" : "Registrarme"}
         </button>
-        <p className="text-center text-sm text-slate-600">
+        <p className="auth-switch">
           ¿Ya tenés cuenta? <Link className="font-bold" href="/login">Ingresá</Link>
         </p>
       </form>

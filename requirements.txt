@@ -12,3 +12,4 @@ alembic==1.15.2
 pytest==8.3.5
 httpx==0.28.1
 redis==6.2.0
+pywebpush==2.0.3

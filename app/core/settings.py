@@ -14,10 +14,7 @@ class Settings(BaseSettings):
     jwt_secret_key: str
     jwt_algorithm: str = "HS256"
     access_token_expire_minutes: int = 30
-    cors_origins: str = (
-        "http://localhost:3000,http://127.0.0.1:3000,"
-        "http://192.168.0.107:3000,http://192.168.1.20:3000"
-    )
+    cors_origins: str = "http://localhost:3000,http://127.0.0.1:3000"
     redis_url: str = "redis://localhost:6379/0"
     ws_ticket_expire_seconds: int = 60
     chat_max_message_length: int = 1000
@@ -40,6 +37,11 @@ class Settings(BaseSettings):
     location_max_payload_bytes: int = 4096
     location_max_connections_per_user: int = 3
     location_eta_cache_seconds: int = 15
+    web_push_vapid_public_key: str | None = None
+    web_push_vapid_private_key: str | None = None
+    web_push_subject: str = "mailto:admin@example.com"
+    web_push_enabled: bool = False
+    web_push_test_enabled: bool = False
 
     model_config = SettingsConfigDict(
         env_file=".env",

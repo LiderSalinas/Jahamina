@@ -87,3 +87,18 @@ Los mensajes de sistema se guardan en la misma transacción y se publican al cha
 # Ubicación activa
 
 PostgreSQL conserva una sesión y su última posición, no un historial. Redis conserva la posición activa, rate limiting, tickets y Pub/Sub. `eta_service` obtiene la próxima parada autorizada desde la hoja de ruta y consulta `map_service`/OSRM con caché corta. El frontend solicita permiso explícito, mantiene un solo `watchPosition` y recupera el contexto REST tras reconectar.
+
+# Alcance geográfico
+
+`app/core/geo.py` es la fuente única de país y límites operativos. Nominatim recibe `countrycodes=py`, `bounded=1`, el viewbox de Paraguay y `addressdetails=1`; el backend descarta resultados sin `country_code=py` o fuera del rectángulo. `frontend/lib/paraguayGeo.ts` contiene los límites equivalentes para MapLibre y validación inmediata, sin sustituir la protección del servidor.
+# Notificaciones
+
+`NotificationService` centraliza idempotencia, persistencia y destinatarios.
+Después del commit publica `notification.created` en Redis y, si está
+habilitado, intenta Web Push por cada dispositivo activo. Una falla externa no
+revierte reservas, mensajes ni la notificación interna. Las suscripciones
+expiradas (HTTP 404/410 del servicio Push) se desactivan.
+
+El frontend recibe eventos con un ticket WebSocket corto y de un solo uso. El
+Service Worker maneja Push en segundo plano y solo navega a rutas del mismo
+origen.

@@ -294,6 +294,9 @@ export const api = {
   geocode(query: string, token: string, signal?: AbortSignal): Promise<GeocodingResult[]> {
     return request<GeocodingResult[]>(`/mapas/geocodificar?q=${encodeURIComponent(query)}`, { signal }, token);
   },
+  reverseGeocode(point: GeoPoint, token: string): Promise<GeocodingResult> {
+    return request<GeocodingResult>(`/mapas/geocodificar-inverso?latitude=${encodeURIComponent(point.latitude)}&longitude=${encodeURIComponent(point.longitude)}`, {}, token);
+  },
   route(origin: GeoPoint, destination: GeoPoint, token: string): Promise<RouteResult> {
     return request<RouteResult>("/mapas/ruta", { method: "POST", body: JSON.stringify({ origin, destination }) }, token);
   },
@@ -325,4 +328,14 @@ export const api = {
     const response = await request<{ticket:string}>(`/reservas/${id}/hoja-ruta/ws-ticket`, {method:"POST"}, token);
     return buildWebSocketUrl(`/ws/hoja-ruta?ticket=${encodeURIComponent(response.ticket)}`);
   },
+  notifications(token: string): Promise<import("./types").NotificationList> { return request("/notificaciones", {}, token); },
+  unreadNotifications(token: string): Promise<import("./types").NotificationList> { return request("/notificaciones/no-leidas", {}, token); },
+  readNotification(id: number, token: string): Promise<import("./types").JahaminaNotification> { return request(`/notificaciones/${id}/leida`, {method:"PATCH"}, token); },
+  readAllNotifications(token: string): Promise<{marcadas:number}> { return request("/notificaciones/leer-todas", {method:"PATCH"}, token); },
+  pushConfig(): Promise<import("./types").PushConfig> { return request("/notificaciones/configuracion-push"); },
+  pushSubscriptions(token:string): Promise<import("./types").PushSubscriptionItem[]> { return request("/notificaciones/suscripciones", {}, token); },
+  subscribePush(payload:{endpoint:string;keys:{p256dh:string;auth:string};dispositivo_nombre?:string}, token:string): Promise<import("./types").PushSubscriptionItem> { return request("/notificaciones/suscripciones", {method:"POST",body:JSON.stringify(payload)}, token); },
+  unsubscribePush(id:number, token:string): Promise<void> { return request(`/notificaciones/suscripciones/${id}`, {method:"DELETE"}, token); },
+  updatePushPreferences(id:number, payload:{mensajes:boolean;reservas:boolean;viaje:boolean}, token:string): Promise<import("./types").PushSubscriptionItem> { return request(`/notificaciones/suscripciones/${id}`, {method:"PATCH",body:JSON.stringify(payload)}, token); },
+  async notificationWebSocketUrl(token:string): Promise<string> { const response=await request<{ticket:string}>("/notificaciones/ws-ticket",{method:"POST"},token); return buildWebSocketUrl(`/notificaciones/ws?ticket=${encodeURIComponent(response.ticket)}`); },
 };

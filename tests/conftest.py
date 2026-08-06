@@ -1,11 +1,18 @@
 from collections.abc import Callable, Generator
 from datetime import datetime, timedelta
+import os
 from typing import Any
 from uuid import uuid4
 
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
+
+# CORS is deterministic in tests and never inherits personal .env origins.
+os.environ["CORS_ORIGINS"] = (
+    "http://localhost:3000,http://127.0.0.1:3000,"
+    "http://lan-frontend.test:3000,https://app.jahamina.test"
+)
 
 from app.core.db import engine, get_db
 from app.main import app

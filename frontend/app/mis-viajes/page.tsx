@@ -1,10 +1,11 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/components/AuthProvider";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { TripCard } from "@/components/TripCard";
+import { AsyncState, PageHeader } from "@/components/ui/AppUI";
+import { PageContainer } from "@/components/ui/PageContainer";
 import { api, ApiError } from "@/lib/api";
 import type { Trip, TripRequest } from "@/lib/types";
 
@@ -20,88 +21,51 @@ export default function MyTripsPage() {
   const load = useCallback(async () => {
     if (!token) return;
     try {
-      const [ownTrips, joinedTrips] = await Promise.all([
-        api.myTrips(token),
-        api.joinedTrips(token),
-      ]);
-      setCreated(ownTrips);
-      setJoined(joinedTrips);
-      const requestGroups = await Promise.all(
-        ownTrips.map((trip) => api.tripRequests(trip.id, token)),
-      );
-      setRequests(requestGroups.flat());
+      const [ownTrips, joinedTrips] = await Promise.all([api.myTrips(token), api.joinedTrips(token)]);
+      setCreated(ownTrips); setJoined(joinedTrips);
+      setRequests((await Promise.all(ownTrips.map((trip) => api.tripRequests(trip.id, token)))).flat());
     } catch (caught) {
       if (caught instanceof ApiError && caught.status === 401) logout();
-      else setError(caught instanceof ApiError ? caught.message : "Error inesperado.");
-    } finally {
-      setLoading(false);
-    }
+      else setError(caught instanceof ApiError ? caught.message : "No pudimos cargar tus viajes.");
+    } finally { setLoading(false); }
   }, [logout, token]);
 
-  useEffect(() => {
-    const timer = window.setTimeout(() => void load(), 0);
-    return () => window.clearTimeout(timer);
-  }, [load]);
+  useEffect(() => { const timer = window.setTimeout(() => void load(), 0); return () => window.clearTimeout(timer); }, [load]);
 
   async function cancel(id: number) {
     if (!token || !window.confirm("¿Confirmás la cancelación de este viaje?")) return;
     setBusyId(id);
-    try {
-      const updated = await api.cancelTrip(id, token);
-      setCreated((trips) => trips.map((trip) => trip.id === id ? updated : trip));
-    } catch (caught) {
-      setError(caught instanceof ApiError ? caught.message : "Error inesperado.");
-    } finally {
-      setBusyId(null);
-    }
+    try { const updated = await api.cancelTrip(id, token); setCreated((items) => items.map((item) => item.id === id ? updated : item)); }
+    catch (caught) { setError(caught instanceof ApiError ? caught.message : "No pudimos cancelar el viaje."); }
+    finally { setBusyId(null); }
   }
 
   async function respond(requestId: number, accept: boolean) {
-    if (!token) return;
-    const label = accept ? "aceptar" : "rechazar";
-    if (!window.confirm(`¿Confirmás que querés ${label} esta solicitud?`)) return;
-    setBusyId(requestId);
-    setError("");
+    if (!token || !window.confirm(`¿Confirmás que querés ${accept ? "aceptar" : "rechazar"} esta solicitud?`)) return;
+    setBusyId(requestId); setError("");
     try {
-      const updated = accept
-        ? await api.acceptRequest(requestId, token)
-        : await api.rejectRequest(requestId, token);
-      setRequests((items) => items.map((item) => item.id === requestId ? updated : item));
-      await load();
-    } catch (caught) {
-      setError(caught instanceof ApiError ? caught.message : "Error inesperado.");
-    } finally {
-      setBusyId(null);
-    }
+      const updated = accept ? await api.acceptRequest(requestId, token) : await api.rejectRequest(requestId, token);
+      setRequests((items) => items.map((item) => item.id === requestId ? updated : item)); await load();
+    } catch (caught) { setError(caught instanceof ApiError ? caught.message : "No pudimos responder la solicitud."); }
+    finally { setBusyId(null); }
   }
 
-  function section(title: string, trips: Trip[], own = false) {
-    return (
-      <section className="mt-10">
-        <h2 className="text-2xl font-black">{title}</h2>
-        {trips.length === 0 ? <p className="status-card mt-4 text-slate-600">No hay viajes en esta sección.</p> :
-          <div className="mt-5 grid gap-5 md:grid-cols-2 lg:grid-cols-3">
-            {trips.map((trip) => <TripCard actionLabel={own ? "Cancelar viaje" : undefined} busy={busyId === trip.id} key={trip.id} onAction={own ? () => cancel(trip.id) : undefined} trip={trip} />)}
-          </div>}
-      </section>
-    );
-  }
+  const groups = useMemo(() => {
+    const all = [...created, ...joined.filter((item) => !created.some((own) => own.id === item.id))];
+    return [
+      { title: "Próximos", items: all.filter((item) => !item.cancelado && ["publicado", "completo"].includes(item.estado) && new Date(item.fecha) > new Date()) },
+      { title: "Activos", items: all.filter((item) => !item.cancelado && item.estado === "en_curso") },
+      { title: "Finalizados", items: all.filter((item) => item.estado === "finalizado") },
+      { title: "Cancelados", items: all.filter((item) => item.cancelado || item.estado === "cancelado") },
+    ];
+  }, [created, joined]);
 
-  return (
-    <ProtectedRoute>
-      <div className="container py-12">
-        <p className="eyebrow">Tu actividad</p><h1 className="mt-2 text-4xl font-black">Mis viajes</h1>
-        {error && <p className="error-message mt-6" role="alert">{error}</p>}
-        {loading ? <div className="status-card mt-8">Cargando historial…</div> : <>
-          <section className="mt-10">
-            <h2 className="text-2xl font-black">Solicitudes recibidas</h2>
-            {requests.length === 0 ? <p className="status-card mt-4 text-slate-600">Todavía no recibiste solicitudes.</p> :
-              <div className="mt-5 grid gap-4">{requests.map((request) => <article className="trip-card" key={request.id}><div className="flex flex-wrap items-center justify-between gap-3"><div><p className="eyebrow">Viaje #{request.viaje_id}</p><h3 className="mt-1 font-black">Solicitud #{request.id}</h3><p className="mt-2 text-sm text-slate-600">{request.mensaje_inicial || "Sin mensaje inicial"}</p></div><span className={request.estado === "aceptada" ? "badge-active" : request.estado === "rechazada" || request.estado === "cancelada" ? "badge-cancelled" : "badge-pending"}>{request.estado}</span></div>{request.estado === "pendiente" && <div className="mt-4 flex gap-3"><button className="button-primary" disabled={busyId === request.id} onClick={() => respond(request.id, true)} type="button">Aceptar</button><button className="button-secondary" disabled={busyId === request.id} onClick={() => respond(request.id, false)} type="button">Rechazar</button></div>}</article>)}</div>}
-          </section>
-          {section("Viajes creados", created, true)}
-          {section("Viajes compartidos", joined)}
-        </>}
-      </div>
-    </ProtectedRoute>
-  );
+  return <ProtectedRoute><PageContainer className="page-stack">
+    <PageHeader eyebrow="Tu actividad" title="Mis viajes" description="Organizá tus próximos trayectos y consultá tu historial."/>
+    {error && <p className="error-message" role="alert">{error}</p>}
+    {loading ? <AsyncState kind="loading" title="Cargando tus viajes…"/> : <>
+      {requests.some(item => item.estado === "pendiente") && <section><div className="section-heading"><h2 className="section-title">Solicitudes recibidas</h2><span className="badge-pending">Pendientes</span></div><div className="request-list">{requests.filter(item => item.estado === "pendiente").map(request => <article className="request-row" key={request.id}><div><p className="eyebrow">Viaje #{request.viaje_id}</p><h3>Nueva solicitud</h3><p>{request.mensaje_inicial || "Sin mensaje inicial"}</p></div><div className="request-actions"><button className="button-primary" disabled={busyId === request.id} onClick={() => respond(request.id, true)} type="button">Aceptar</button><button className="button-secondary" disabled={busyId === request.id} onClick={() => respond(request.id, false)} type="button">Rechazar</button></div></article>)}</div></section>}
+      <div className="trip-groups">{groups.map(group => <section key={group.title}><div className="section-heading"><h2 className="section-title">{group.title}</h2><span>{group.items.length}</span></div>{group.items.length ? <div className="my-trips-grid">{group.items.map(trip => <TripCard actionLabel={created.some(item => item.id === trip.id) && !trip.cancelado && trip.estado !== "finalizado" ? "Cancelar viaje" : undefined} busy={busyId === trip.id} key={trip.id} onAction={created.some(item => item.id === trip.id) ? () => cancel(trip.id) : undefined} trip={trip}/>)}</div> : <p className="compact-empty">No hay viajes en esta sección.</p>}</section>)}</div>
+    </>}
+  </PageContainer></ProtectedRoute>;
 }

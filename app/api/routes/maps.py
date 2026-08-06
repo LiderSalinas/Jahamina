@@ -16,6 +16,15 @@ async def geocodificar(
     return await map_service.geocode(q)
 
 
+@router.get("/mapas/geocodificar-inverso", response_model=GeocodingResult)
+async def geocodificar_inverso(
+    latitude: float = Query(ge=-90, le=90),
+    longitude: float = Query(ge=-180, le=180),
+    _: Usuario = Depends(get_current_user),
+):
+    return await map_service.reverse_geocode(latitude, longitude)
+
+
 @router.post("/mapas/ruta", response_model=RouteResponse)
 async def calcular_ruta(
     data: RouteRequest,

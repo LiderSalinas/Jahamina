@@ -6,6 +6,8 @@ import { useAuth } from "@/components/AuthProvider";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { api, ApiError } from "@/lib/api";
 import type { Vehicle } from "@/lib/types";
+import { PageContainer } from "@/components/ui/PageContainer";
+import { AsyncState, PageHeader, SurfaceCard } from "@/components/ui/AppUI";
 
 export default function VehiclesPage() {
   const { token } = useAuth();
@@ -53,24 +55,24 @@ export default function VehiclesPage() {
 
   return (
     <ProtectedRoute>
-      <section className="container py-12">
-        <p className="eyebrow">Conductor</p><h1 className="mt-2 text-4xl font-black">Mis vehículos</h1>
-        <div className="mt-8 grid gap-8 lg:grid-cols-[0.9fr_1.1fr]">
-          <form className="form-card space-y-4" onSubmit={submit}>
-            <h2 className="text-xl font-black">Agregar vehículo</h2>
+      <PageContainer className="page-stack">
+        <PageHeader eyebrow="Conductor" title="Mis vehículos" description="Registrá los vehículos que usás para compartir tus viajes."/>
+        <div className="split-layout">
+          <form className="surface-card form-stack" onSubmit={submit}>
+            <div><p className="eyebrow">Nuevo vehículo</p><h2 className="section-title">Agregar vehículo</h2></div>
             {error && <p className="error-message" role="alert">{error}</p>}
             {success && <p className="success-message">{success}</p>}
-            {["marca", "modelo", "color", "matricula"].map((field) => <div className="form-field" key={field}><label htmlFor={field}>{field === "matricula" ? "Matrícula" : field}</label><input id={field} name={field} required /></div>)}
+            <div className="form-grid">{["marca", "modelo", "color", "matricula"].map((field) => <div className="form-field" key={field}><label htmlFor={field}>{field === "matricula" ? "Matrícula" : field}</label><input id={field} name={field} autoComplete="off" required /></div>)}</div>
             <div className="form-field"><label htmlFor="capacidad">Capacidad de pasajeros</label><input id="capacidad" max={8} min={1} name="capacidad" type="number" required /></div>
             <button className="button-primary w-full" type="submit">Guardar vehículo</button>
           </form>
-          <div>
-            <h2 className="text-xl font-black">Vehículos registrados</h2>
-            {loading ? <div className="status-card mt-4">Cargando…</div> : vehicles.length === 0 ? <div className="status-card mt-4">No registraste vehículos.</div> :
-              <div className="mt-4 grid gap-4">{vehicles.map((vehicle) => <article className="trip-card" key={vehicle.id}><div className="flex items-start justify-between gap-4"><div><h3 className="text-lg font-black">{vehicle.marca} {vehicle.modelo}</h3><p className="mt-1 text-slate-600">{vehicle.color} · {vehicle.matricula}</p><p className="mt-2 text-sm font-semibold">{vehicle.capacidad} pasajeros</p></div><span className={vehicle.activo ? "badge-active" : "badge-cancelled"}>{vehicle.activo ? "Activo" : "Inactivo"}</span></div>{vehicle.activo && <button className="button-secondary mt-4" onClick={() => disable(vehicle.id)} type="button">Desactivar</button>}</article>)}</div>}
-          </div>
+          <section>
+            <h2 className="section-title">Vehículos registrados</h2>
+            {loading ? <AsyncState kind="loading" title="Cargando vehículos…"/> : vehicles.length === 0 ? <AsyncState title="Todavía no registraste vehículos" description="Agregá uno para poder publicar un viaje."/> :
+              <div className="vehicle-list">{vehicles.map((vehicle) => <SurfaceCard as="article" className="vehicle-card" key={vehicle.id}><div className="vehicle-symbol" aria-hidden>V</div><div className="vehicle-copy"><div className="vehicle-heading"><div><h3>{vehicle.marca} {vehicle.modelo}</h3><p>{vehicle.color} · {vehicle.matricula}</p></div><span className={vehicle.activo ? "badge-active" : "badge-cancelled"}>{vehicle.activo ? "Activo" : "Inactivo"}</span></div><p className="vehicle-capacity">Hasta {vehicle.capacidad} pasajeros</p>{vehicle.activo && <button className="button-secondary" onClick={() => disable(vehicle.id)} type="button">Desactivar</button>}</div></SurfaceCard>)}</div>}
+          </section>
         </div>
-      </section>
+      </PageContainer>
     </ProtectedRoute>
   );
 }

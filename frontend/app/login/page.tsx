@@ -6,6 +6,7 @@ import { FormEvent, Suspense, useRef, useState } from "react";
 
 import { useAuth } from "@/components/AuthProvider";
 import { ApiError } from "@/lib/api";
+import { PasswordField } from "@/components/ui/PasswordField";
 
 function LoginForm() {
   const { login } = useAuth();
@@ -41,10 +42,12 @@ function LoginForm() {
   }
 
   return (
-    <form className="form-card w-full max-w-md space-y-5" method="post" onSubmit={submit}>
+    <form className="auth-card" method="post" onSubmit={submit}>
       <div>
+        <span className="auth-mark" aria-hidden>J</span>
         <p className="eyebrow">Bienvenido de vuelta</p>
-        <h1 className="mt-2 text-3xl font-black">Ingresar</h1>
+        <h1>Ingresá a Jahamina</h1>
+        <p className="auth-intro">Tus viajes, reservas y conversaciones están en un solo lugar.</p>
       </div>
       {params.get("registered") && <p className="success-message">Cuenta creada. Ya podés ingresar.</p>}
       {error && <p className="error-message" role="alert">{error}</p>}
@@ -52,14 +55,11 @@ function LoginForm() {
         <label htmlFor="email">Email</label>
         <input id="email" name="email" type="email" autoComplete="email" required />
       </div>
-      <div className="form-field">
-        <label htmlFor="password">Contraseña</label>
-        <input id="password" name="password" type="password" autoComplete="current-password" required />
-      </div>
+      <PasswordField id="password" name="password" autoComplete="current-password" required />
       <button className="button-primary w-full" disabled={loading} type="submit">
         {loading ? "Ingresando…" : "Ingresar"}
       </button>
-      <p className="text-center text-sm text-slate-600">
+      <p className="auth-switch">
         ¿Todavía no tenés cuenta? <Link className="font-bold" href="/registro">Registrate</Link>
       </p>
     </form>
@@ -68,8 +68,8 @@ function LoginForm() {
 
 export default function LoginPage() {
   return (
-    <section className="container grid min-h-[calc(100vh-4rem)] place-items-center py-12">
-      <Suspense fallback={<div className="status-card">Cargando…</div>}>
+    <section className="auth-page">
+      <Suspense fallback={<div className="async-state">Preparando Jahamina…</div>}>
         <LoginForm />
       </Suspense>
     </section>

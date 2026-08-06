@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useAuth } from "@/components/AuthProvider";
 import { api, ApiError } from "@/lib/api";
+import { createClientMessageId } from "@/lib/client-id";
 import type { Conversation } from "@/lib/types";
 import { ChatEmptyState } from "./ChatEmptyState";
 import { ConnectionStatus } from "./ConnectionStatus";
@@ -13,7 +14,7 @@ import { TypingIndicator } from "./TypingIndicator";
 
 type ConnectionState = "connected" | "reconnecting" | "disconnected";
 
-export function ChatPanel({ reservationId }: { reservationId: number }) {
+export function ChatPanel({ reservationId, reservationState = "pendiente" }: { reservationId: number; reservationState?: string }) {
   const { token, user } = useAuth();
   const [conversation, setConversation] = useState<Conversation | null>(null);
   const [messages, setMessages] = useState<DisplayMessage[]>([]);
@@ -33,8 +34,9 @@ export function ChatPanel({ reservationId }: { reservationId: number }) {
   const mergeMessage = useCallback((message: DisplayMessage) => {
     setMessages((current) => {
       const index = current.findIndex((item) => item.id === message.id || Boolean(message.client_message_id && item.client_message_id === message.client_message_id));
-      if (index < 0) return [...current, { ...message, delivery: "sent" }];
-      const next = [...current]; next[index] = { ...message, delivery: "sent" }; return next;
+      const merged = { ...message, delivery: message.delivery ?? "sent" } as DisplayMessage;
+      if (index < 0) return [...current, merged];
+      const next = [...current]; next[index] = merged; return next;
     });
   }, []);
 
@@ -98,17 +100,25 @@ export function ChatPanel({ reservationId }: { reservationId: number }) {
   useEffect(() => { const element = listRef.current; if (element && element.scrollHeight - element.scrollTop - element.clientHeight < 180) element.scrollTo({ top: element.scrollHeight, behavior: "smooth" }); }, [messages]);
 
   const send = useCallback(async (content: string, previousId?: string | null) => {
-    if (!conversation || !token || !user) return;
-    const clientId = previousId || crypto.randomUUID();
+    if (!conversation || !token || !user) throw new Error("El chat todavía no está disponible.");
+    const clientId = previousId || createClientMessageId();
     mergeMessage({ id: -Date.now(), conversacion_id: conversation.id, remitente_id: user.id, contenido: content, tipo: "texto", creado_en: new Date().toISOString(), editado_en: null, leido_en: null, eliminado: false, client_message_id: clientId, delivery: "sending" });
-    if (socketRef.current?.readyState === WebSocket.OPEN) socketRef.current.send(JSON.stringify({ type: "message.send", data: { contenido: content, client_message_id: clientId } }));
-    else try { mergeMessage(await api.sendChatMessage(conversation.id, { contenido: content, client_message_id: clientId }, token)); } catch { setMessages((items) => items.map((item) => item.client_message_id === clientId ? { ...item, delivery: "error" } : item)); }
+    try {
+      if (socketRef.current?.readyState === WebSocket.OPEN) {
+        socketRef.current.send(JSON.stringify({ type: "message.send", data: { contenido: content, client_message_id: clientId } }));
+      } else {
+        mergeMessage(await api.sendChatMessage(conversation.id, { contenido: content, client_message_id: clientId }, token));
+      }
+    } catch (caught) {
+      setMessages((items) => items.map((item) => item.client_message_id === clientId ? { ...item, delivery: "error" } : item));
+      throw caught;
+    }
   }, [conversation, mergeMessage, token, user]);
 
   async function loadOlder() { if (!conversation || !token || !cursor) return; const page = await api.chatMessages(conversation.id, token, cursor); setMessages((items) => [...page.items, ...items]); setCursor(page.next_cursor); }
   function signalTyping(active: boolean) { if (socketRef.current?.readyState === WebSocket.OPEN) socketRef.current.send(JSON.stringify({ type: active ? "typing.start" : "typing.stop", data: {} })); }
 
-  if (unavailable) return <section className="chat-panel"><ChatEmptyState unavailable /></section>;
+  if (unavailable) return <section className="chat-panel chat-panel-empty"><ChatEmptyState unavailable accepted={["aceptada", "finalizada"].includes(reservationState)} /></section>;
   if (!conversation || !user) return <section className="chat-panel chat-skeleton" aria-busy="true">{error || "Cargando conversación…"}</section>;
   return <section className="chat-panel"><header><div><p className="eyebrow">Chat del viaje</p><h2>{conversation.participante}</h2><span>{conversation.origen} → {conversation.destino}</span></div><ConnectionStatus status={connection} /></header><MessageList ref={listRef} messages={messages} user={user} loadOlder={loadOlder} hasOlder={Boolean(cursor)} retry={(message) => send(message.contenido, message.client_message_id)} /><TypingIndicator visible={typing} /><MessageComposer disabled={!conversation.puede_escribir} onSend={send} onTyping={signalTyping} /></section>;
 }

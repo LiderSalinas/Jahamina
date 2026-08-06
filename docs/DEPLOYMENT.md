@@ -120,3 +120,14 @@ Next.js carga `frontend/.env.local`; Docker Compose interpola por defecto el `.e
 # Geolocalización móvil en desarrollo
 
 Los navegadores móviles normalmente exigen HTTPS para `navigator.geolocation` fuera de `localhost`. Use un proxy/túnel HTTPS de desarrollo o certificados locales confiables fuera del repositorio; configure las URLs HTTPS/WSS y el origen exacto en CORS. No versione certificados ni claves. Compruebe primero `/health`, luego inicie el frontend enlazado a `0.0.0.0` y acepte el permiso únicamente al pulsar **Compartir ubicación**.
+# Web Push y HTTPS
+
+Configure `WEB_PUSH_ENABLED`, las claves VAPID y un `WEB_PUSH_SUBJECT` válido
+solo en el entorno del backend. Nunca use una variable `NEXT_PUBLIC_*` para la
+clave privada. Producción necesita HTTPS para frontend y API, WSS para sockets
+y orígenes explícitos en CORS.
+
+Para pruebas móviles use un túnel HTTPS confiable o certificados locales
+administrados fuera del repositorio. Verifique `/manifest.webmanifest`,
+`/sw.js`, active las notificaciones desde la campana y use el endpoint de
+prueba únicamente con `WEB_PUSH_TEST_ENABLED=true` en desarrollo.

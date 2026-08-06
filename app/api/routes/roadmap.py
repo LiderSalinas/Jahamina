@@ -16,6 +16,9 @@ from app.models.usuario import Usuario
 from app.schemas.chat_schema import MessageResponse
 from app.schemas.roadmap_schema import RoadmapResponse, RoadmapTicketResponse
 from app.services import roadmap_service
+from app.services import notification_service
+from app.models.solicitud_viaje import SolicitudViaje
+from sqlalchemy import select
 
 router = APIRouter()
 
@@ -58,7 +61,23 @@ async def _publish(response: RoadmapResponse, event: dict) -> RoadmapResponse:
 @router.post("/viajes/{viaje_id}/acciones/{accion}", response_model=RoadmapResponse)
 async def trip_action(viaje_id: int, accion: str, db: Session = Depends(get_db), user: Usuario = Depends(get_current_user)):
     response, event = roadmap_service.trip_action(db, viaje_id, user.id, accion)
-    return await _publish(response, event)
+    published = await _publish(response, event)
+    config = {
+        "salir": ("conductor_en_camino", "El conductor está en camino", "El conductor salió hacia el punto de encuentro."),
+        "iniciar": ("viaje_iniciado", "El viaje comenzó", "Tu viaje compartido ya está en curso."),
+        "finalizar": ("viaje_finalizado", "Viaje finalizado", "El viaje compartido finalizó."),
+    }.get(accion)
+    if config and event.get("created", True):
+        kind, title, body = config
+        requests = list(db.scalars(select(SolicitudViaje).where(SolicitudViaje.viaje_id == viaje_id, SolicitudViaje.estado.in_({"aceptada", "finalizada"}))))
+        for request in requests:
+            await notification_service.notify(
+                db, user_id=request.pasajero_id, actor_id=user.id, notification_type=kind,
+                title=title, body=body, idempotency_key=f"trip:{viaje_id}:{kind}:{request.pasajero_id}",
+                destination_url=f"/reservas/{request.id}", reservation_id=request.id, trip_id=viaje_id,
+                conversation_id=request.conversacion.id if request.conversacion else None,
+            )
+    return published
 
 
 @router.post("/reservas/{reserva_id}/acciones/{accion}", response_model=RoadmapResponse)

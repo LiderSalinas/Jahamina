@@ -17,40 +17,42 @@ export function TripCard({
     dateStyle: "medium",
     timeStyle: "short",
   }).format(new Date(trip.fecha));
+  const status = trip.cancelado || trip.estado === "cancelado"
+    ? { label: "Cancelado", className: "badge-cancelled" }
+    : trip.estado === "finalizado"
+      ? { label: "Finalizado", className: "badge-active" }
+      : trip.estado === "en_curso"
+        ? { label: "En curso", className: "badge-pending" }
+        : trip.estado === "completo" || trip.cupos_disponibles === 0
+          ? { label: "Completo", className: "badge-pending" }
+          : { label: "Disponible", className: "badge-active" };
 
   return (
-    <article className="trip-card">
+    <article className="trip-card trip-card-official">
       <div className="flex items-start justify-between gap-4">
-        <span className={trip.cancelado ? "badge-cancelled" : "badge-active"}>
-          {trip.cancelado ? "Cancelado" : "Disponible"}
-        </span>
-        <span className="text-xs font-semibold text-slate-500">#{trip.id}</span>
+        <span className={status.className}>{status.label}</span>
+        <span className="trip-reference">Viaje #{trip.id}</span>
       </div>
-      <div className="mt-5 grid grid-cols-[1fr_auto_1fr] items-center gap-3">
+      <div className="trip-route">
         <div>
           <p className="eyebrow">Origen</p>
-          <p className="font-bold text-slate-900">{trip.origen}</p>
+          <p className="trip-place">{trip.origen}</p>
         </div>
-        <span aria-hidden className="text-2xl text-amber-500">→</span>
+        <span aria-hidden className="trip-arrow">→</span>
         <div className="text-right">
           <p className="eyebrow">Destino</p>
-          <p className="font-bold text-slate-900">{trip.destino}</p>
+          <p className="trip-place">{trip.destino}</p>
         </div>
       </div>
-      <p className="mt-5 border-t border-slate-100 pt-4 text-sm text-slate-600">
+      <p className="trip-date">
         {date}
       </p>
-      <div className="mt-3 flex items-center justify-between text-sm">
-        <span className="font-semibold text-slate-600">
+      <div className="trip-meta-row">
+        <span>
           {trip.cupos_disponibles} de {trip.cupos_totales} lugares
         </span>
-        <span className="font-bold capitalize text-emerald-700">
-          {trip.estado.replace("_", " ")}
-        </span>
+        <span>{trip.cupos_disponibles === 1 ? "1 lugar libre" : `${trip.cupos_disponibles} lugares libres`}</span>
       </div>
-      <p className="mt-3 text-sm text-slate-600">
-        {trip.punto_salida} → {trip.punto_llegada}
-      </p>
       {actionLabel && onAction && !trip.cancelado && (
         <button
           className="button-primary mt-5 w-full"

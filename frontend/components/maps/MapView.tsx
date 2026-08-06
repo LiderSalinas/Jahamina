@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { GeoPoint } from "@/lib/types";
 import { MapErrorState } from "./MapErrorState";
 import { MapLoadingState } from "./MapLoadingState";
+import { isWithinParaguay, PARAGUAY_BOUNDS, PARAGUAY_CENTER } from "@/lib/paraguayGeo";
 
 const DEVELOPMENT_STYLE_URL = "https://tiles.openfreemap.org/styles/liberty";
 const MAP_ERROR_MESSAGE = "No se pudo cargar el mapa. El punto de encuentro continúa disponible.";
@@ -19,6 +20,7 @@ interface MapViewProps {
   markers: MapMarker[];
   route?: GeoPoint[];
   onMarkerMove?: (id: string, point: GeoPoint) => void;
+  onInvalidPoint?: () => void;
   className?: string;
 }
 
@@ -27,10 +29,7 @@ function validPoint(point: GeoPoint | undefined): point is GeoPoint {
     point
       && Number.isFinite(point.latitude)
       && Number.isFinite(point.longitude)
-      && point.latitude >= -90
-      && point.latitude <= 90
-      && point.longitude >= -180
-      && point.longitude <= 180,
+      && isWithinParaguay(point),
   );
 }
 
@@ -52,12 +51,13 @@ function configuredStyleUrl(): { url: string | null; usingFallback: boolean } {
     : { url: null, usingFallback: false };
 }
 
-export function MapView({ markers, route, onMarkerMove, className = "" }: MapViewProps) {
+export function MapView({ markers, route, onMarkerMove, onInvalidPoint, className = "" }: MapViewProps) {
   const container = useRef<HTMLDivElement>(null);
   const mapRef = useRef<import("maplibre-gl").Map | null>(null);
   const maplibreRef = useRef<typeof import("maplibre-gl") | null>(null);
   const markerInstances = useRef<import("maplibre-gl").Marker[]>([]);
   const callbackRef = useRef(onMarkerMove);
+  const invalidCallbackRef = useRef(onInvalidPoint);
   const style = useMemo(() => configuredStyleUrl(), []);
   const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState(() => style.url ? "" : MAP_ERROR_MESSAGE);
@@ -65,13 +65,17 @@ export function MapView({ markers, route, onMarkerMove, className = "" }: MapVie
   const validRoute = useMemo(() => route?.filter(validPoint) ?? [], [route]);
 
   useEffect(() => { callbackRef.current = onMarkerMove; }, [onMarkerMove]);
+  useEffect(() => { invalidCallbackRef.current = onInvalidPoint; }, [onInvalidPoint]);
 
   const fitContent = useCallback(() => {
     const map = mapRef.current;
     const maplibre = maplibreRef.current;
     if (!map || !maplibre) return;
     const points = validRoute.length >= 2 ? validRoute : validMarkers;
-    if (points.length === 0) return;
+    if (points.length === 0) {
+      map.fitBounds(PARAGUAY_BOUNDS, { padding: 28, duration: 0 });
+      return;
+    }
     if (points.length === 1) {
       map.easeTo({ center: [points[0].longitude, points[0].latitude], zoom: 15 });
       return;
@@ -95,12 +99,14 @@ export function MapView({ markers, route, onMarkerMove, className = "" }: MapVie
       const defaultLongitude = Number(process.env.NEXT_PUBLIC_DEFAULT_LONGITUDE ?? -57.3333);
       const first = validPoint({ latitude: defaultLatitude, longitude: defaultLongitude })
         ? { latitude: defaultLatitude, longitude: defaultLongitude }
-        : { latitude: -25.2867, longitude: -57.3333 };
+        : { latitude: PARAGUAY_CENTER[1], longitude: PARAGUAY_CENTER[0] };
       const map = new maplibre.Map({
         container: container.current,
         style: styleUrl,
         center: [first.longitude, first.latitude],
         zoom: Number(process.env.NEXT_PUBLIC_DEFAULT_ZOOM ?? 11),
+        minZoom: 5,
+        maxBounds: PARAGUAY_BOUNDS,
         attributionControl: {},
       });
       mapRef.current = map;
@@ -110,6 +116,7 @@ export function MapView({ markers, route, onMarkerMove, className = "" }: MapVie
         setLoaded(true);
         setError("");
         map.resize();
+        map.fitBounds(PARAGUAY_BOUNDS, { padding: 28, duration: 0 });
       });
       map.on("error", (event) => {
         if (disposed) return;
@@ -143,16 +150,24 @@ export function MapView({ markers, route, onMarkerMove, className = "" }: MapVie
       if (item.label) marker.setPopup(new maplibre.Popup({ offset: 20 }).setText(item.label));
       if (item.draggable) marker.on("dragend", () => {
         const point = marker.getLngLat();
-        callbackRef.current?.(item.id, { latitude: point.lat, longitude: point.lng });
+        const next = { latitude: point.lat, longitude: point.lng };
+        if (!isWithinParaguay(next)) {
+          marker.setLngLat([item.longitude, item.latitude]);
+          invalidCallbackRef.current?.();
+          return;
+        }
+        callbackRef.current?.(item.id, next);
       });
       return marker;
     });
 
     if (map.getLayer("route")) map.removeLayer("route");
+    if (map.getLayer("route-shadow")) map.removeLayer("route-shadow");
     if (map.getSource("route")) map.removeSource("route");
     if (validRoute.length >= 2) {
       map.addSource("route", { type: "geojson", data: { type: "Feature", properties: {}, geometry: { type: "LineString", coordinates: validRoute.map((point) => [point.longitude, point.latitude]) } } });
-      map.addLayer({ id: "route", type: "line", source: "route", paint: { "line-color": "#047857", "line-width": 5, "line-opacity": 0.8 } });
+      map.addLayer({ id: "route-shadow", type: "line", source: "route", layout: { "line-cap": "round", "line-join": "round" }, paint: { "line-color": "#b9d9ca", "line-width": 11, "line-opacity": 0.72 } });
+      map.addLayer({ id: "route", type: "line", source: "route", layout: { "line-cap": "round", "line-join": "round" }, paint: { "line-color": "#075b49", "line-width": 6, "line-opacity": 0.92 } });
     }
     fitContent();
   }, [fitContent, loaded, validMarkers, validRoute]);

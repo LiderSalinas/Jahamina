@@ -20,12 +20,12 @@ from app.services.chat_service import add_system_message
 
 TRIP_TRANSITIONS = {
     "preparar-salida": ({"publicado", "completo", "programado"}, "preparando_salida", "conductor_preparando_salida", "El conductor está preparando la salida."),
-    "salir": ({"preparando_salida"}, "conductor_en_camino", "conductor_en_camino", "El conductor salió hacia el próximo punto."),
+    "salir": ({"publicado", "completo", "programado", "preparando_salida"}, "conductor_en_camino", "conductor_en_camino", "El conductor salió hacia el punto de encuentro."),
     "llegar": ({"conductor_en_camino"}, "conductor_en_punto", "conductor_llego", "El conductor llegó al punto de encuentro."),
-    "iniciar": ({"conductor_en_punto", "abordaje"}, "en_curso", "viaje_iniciado", "El viaje comenzó."),
+    "iniciar": ({"conductor_en_camino", "conductor_en_punto", "abordaje"}, "en_curso", "viaje_iniciado", "El viaje comenzó."),
     "pausar": ({"en_curso"}, "pausado", "viaje_pausado", "El viaje fue pausado."),
     "reanudar": ({"pausado"}, "en_curso", "viaje_reanudado", "El viaje se reanudó."),
-    "finalizar": ({"en_curso"}, "finalizado", "viaje_finalizado", "El viaje finalizó."),
+    "finalizar": ({"en_curso", "pausado"}, "finalizado", "viaje_finalizado", "El viaje finalizó."),
 }
 
 PASSENGER_ACTIONS = {
@@ -110,11 +110,20 @@ def _derived_timeline(request: SolicitudViaje, events: list[EventoViaje]) -> lis
     on_the_way = trip_state in {"conductor_en_camino", "conductor_en_punto", "abordaje", "en_curso", "pausado", "finalizado"}
     in_progress = trip_state in {"en_curso", "pausado", "finalizado"}
     finished = request.estado == "finalizada" or trip_state == "finalizado"
+    point_detail = request.punto_encuentro_propuesto or "Todavía falta acordarlo."
+    if "pasajero_listo" in by_type:
+        point_detail = f"{point_detail} · Pasajero listo."
+    driver_detail = "En camino hacia el punto acordado."
+    if "pasajero_abordo" in by_type:
+        driver_detail = "Encuentro completado · pasajero a bordo."
+    elif "conductor_llego" in by_type:
+        driver_detail = "El conductor llegó al punto acordado."
+    trip_detail = "Viaje pausado temporalmente." if trip_state == "pausado" else f"Trayecto hacia {request.viaje.destino}."
     raw: list[tuple[str, str, str, bool, datetime | None]] = [
         ("reserva-confirmada", "Reserva confirmada", "Tu lugar está reservado.", True, request.responded_at or request.created_at),
-        ("punto-confirmado", "Punto de encuentro", request.punto_encuentro_propuesto or "Todavía falta acordarlo.", meeting_confirmed, request.punto_encuentro_actualizado_en if meeting_confirmed else None),
-        ("conductor-en-camino", "Conductor en camino", "En camino hacia el punto acordado.", on_the_way, by_type.get("conductor_en_camino").created_at if by_type.get("conductor_en_camino") else None),
-        ("viaje-en-curso", "Viaje en curso", f"Trayecto hacia {request.viaje.destino}.", in_progress, by_type.get("viaje_iniciado").created_at if by_type.get("viaje_iniciado") else None),
+        ("punto-confirmado", "Punto de encuentro", point_detail, meeting_confirmed, request.punto_encuentro_actualizado_en if meeting_confirmed else None),
+        ("conductor-en-camino", "Conductor en camino", driver_detail, on_the_way, by_type.get("conductor_en_camino").created_at if by_type.get("conductor_en_camino") else None),
+        ("viaje-en-curso", "Viaje en curso", trip_detail, in_progress, by_type.get("viaje_iniciado").created_at if by_type.get("viaje_iniciado") else None),
         ("viaje-finalizado", "Viaje finalizado", "Llegaron al destino.", finished, by_type.get("viaje_finalizado").created_at if by_type.get("viaje_finalizado") else None),
     ]
     current_index = 4 if finished else next((index for index, item in enumerate(raw) if not item[3]), 4)
@@ -130,9 +139,9 @@ def _next_action(request: SolicitudViaje, role: str) -> NextAction:
         label, action = mapping.get(request.estado_pasajero, ("Abrir chat", "chat"))
         return NextAction(id=action, label=label)
     mapping = {
-        "publicado": ("Salir hacia el punto", "preparar-salida"), "completo": ("Salir hacia el punto", "preparar-salida"), "programado": ("Salir hacia el punto", "preparar-salida"),
+        "publicado": ("Salir hacia el punto", "salir"), "completo": ("Salir hacia el punto", "salir"), "programado": ("Salir hacia el punto", "salir"),
         "preparando_salida": ("Salir hacia el punto", "salir"),
-        "conductor_en_camino": ("Abrir chat", "chat"), "conductor_en_punto": ("Iniciar viaje", "iniciar"), "abordaje": ("Iniciar viaje", "iniciar"),
+        "conductor_en_camino": ("Iniciar viaje", "iniciar"), "conductor_en_punto": ("Iniciar viaje", "iniciar"), "abordaje": ("Iniciar viaje", "iniciar"),
         "en_curso": ("Finalizar viaje", "finalizar"), "pausado": ("Finalizar viaje", "finalizar"),
     }
     label, action = mapping.get(trip.estado, ("Sin acciones disponibles", "none"))
@@ -183,11 +192,14 @@ def trip_action(db: Session, trip_id: int, user_id: int, action: str) -> tuple[R
         return get_roadmap(db, request.id, user_id), {"type": "trip.status.changed", "data": {"estado": target}, "messages": [], "created": False}
     if trip.estado not in allowed:
         raise HTTPException(status_code=409, detail=f"No se puede ejecutar la acción desde {trip.estado}")
-    if action == "iniciar":
-        pending = db.scalar(select(SolicitudViaje.id).where(SolicitudViaje.viaje_id == trip_id, SolicitudViaje.estado == "aceptada", SolicitudViaje.estado_pasajero.not_in({"abordo", "ausente"})).limit(1))
-        if pending:
-            raise HTTPException(status_code=409, detail="Aún hay pasajeros pendientes de abordaje")
     trip.estado = target
+    if action == "iniciar":
+        for accepted in db.scalars(select(SolicitudViaje).where(SolicitudViaje.viaje_id == trip_id, SolicitudViaje.estado == "aceptada")):
+            if accepted.estado_pasajero != "ausente":
+                accepted.estado_pasajero = "abordo"
+            pickup = db.scalar(select(ParadaViaje).where(ParadaViaje.reserva_id == accepted.id, ParadaViaje.tipo == "recogida"))
+            if pickup:
+                pickup.estado = "completada"
     if target == "finalizado":
         for accepted in db.scalars(select(SolicitudViaje).where(SolicitudViaje.viaje_id == trip_id, SolicitudViaje.estado == "aceptada")):
             accepted.estado = "finalizada"; accepted.estado_pasajero = "completado"

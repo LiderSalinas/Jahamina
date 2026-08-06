@@ -3,6 +3,8 @@ from enum import StrEnum
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
+from app.core.geo import validate_paraguay_coordinates
+
 
 class EstadoViaje(StrEnum):
     PUBLICADO = "publicado"
@@ -57,6 +59,17 @@ class ViajeCreate(BaseModel):
             raise ValueError("La fecha del viaje debe ser futura")
         self.punto_salida = (self.punto_salida or self.origen).strip()
         self.punto_llegada = (self.punto_llegada or self.destino).strip()
+        coordinate_pairs = (
+            (self.origen_latitud, self.origen_longitud),
+            (self.destino_latitud, self.destino_longitud),
+            (self.punto_salida_latitud, self.punto_salida_longitud),
+            (self.punto_llegada_latitud, self.punto_llegada_longitud),
+        )
+        for latitude, longitude in coordinate_pairs:
+            if (latitude is None) != (longitude is None):
+                raise ValueError("La ubicación debe incluir latitud y longitud.")
+            if latitude is not None and longitude is not None:
+                validate_paraguay_coordinates(latitude, longitude)
         return self
 
 class ViajeResponse(BaseModel):

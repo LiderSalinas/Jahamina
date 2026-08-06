@@ -8,6 +8,8 @@ import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { TripCard } from "@/components/TripCard";
 import { api, ApiError } from "@/lib/api";
 import type { Trip } from "@/lib/types";
+import { PageContainer } from "@/components/ui/PageContainer";
+import { AsyncState, PageHeader } from "@/components/ui/AppUI";
 
 export default function TripsPage() {
   const { token, logout } = useAuth();
@@ -15,6 +17,8 @@ export default function TripsPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<number | null>(null);
+  const [query, setQuery] = useState("");
+  const [date, setDate] = useState("");
 
   const load = useCallback(async () => {
     if (!token) return;
@@ -47,20 +51,23 @@ export default function TripsPage() {
     }
   }
 
+  const filtered = trips.filter((trip) => {
+    const search = query.trim().toLocaleLowerCase("es-PY");
+    const matchesText = !search || `${trip.origen} ${trip.destino}`.toLocaleLowerCase("es-PY").includes(search);
+    return matchesText && (!date || trip.fecha.slice(0, 10) === date);
+  });
   return (
     <ProtectedRoute>
-      <section className="container py-12">
-        <div className="flex flex-wrap items-end justify-between gap-4">
-          <div><p className="eyebrow">Explorá</p><h1 className="mt-2 text-4xl font-black">Viajes disponibles</h1></div>
-          <Link className="button-primary" href="/viajes/nuevo">Publicar viaje</Link>
-        </div>
+      <PageContainer className="page-stack">
+        <PageHeader eyebrow="Explorá Paraguay" title="Viajes disponibles" description="Encontrá un trayecto que coincida con tu camino." action={<Link className="button-primary" href="/viajes/nuevo">Publicar viaje</Link>}/>
+        <div className="filter-bar" role="search"><div className="form-field"><label htmlFor="trip-search">Origen o destino</label><input id="trip-search" type="search" value={query} onChange={event => setQuery(event.target.value)} placeholder="Buscar origen o destino en Paraguay"/></div><div className="form-field"><label htmlFor="trip-date">Fecha</label><input id="trip-date" type="date" value={date} onChange={event => setDate(event.target.value)}/></div>{(query || date) && <button className="button-secondary" type="button" onClick={() => { setQuery(""); setDate(""); }}>Limpiar filtros</button>}</div>
         {error && <p className="error-message mt-6" role="alert">{error}</p>}
-        {loading ? <div className="status-card mt-8">Buscando viajes…</div> :
-          trips.length === 0 ? <div className="status-card mt-8"><h2 className="text-xl font-bold">Todavía no hay viajes disponibles</h2><p className="mt-2 text-slate-600">Podés publicar el primero o volver más tarde.</p></div> :
-          <div className="mt-8 grid gap-5 md:grid-cols-2 lg:grid-cols-3">
-            {trips.map((trip) => <TripCard actionLabel="Solicitar lugar" busy={busyId === trip.id} key={trip.id} onAction={() => join(trip.id)} trip={trip} />)}
+        {loading ? <AsyncState kind="loading" title="Buscando viajes…" description="Esto puede tardar unos segundos."/> :
+          filtered.length === 0 ? <AsyncState icon="J" title="No encontramos viajes para esta búsqueda" description="Probá con otra fecha o publicá tu propio trayecto desde la acción superior."/> :
+          <div className="card-grid">
+            {filtered.map((trip) => <TripCard actionLabel="Solicitar lugar" busy={busyId === trip.id} key={trip.id} onAction={() => join(trip.id)} trip={trip} />)}
           </div>}
-      </section>
+      </PageContainer>
     </ProtectedRoute>
   );
 }

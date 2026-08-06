@@ -31,6 +31,7 @@ from app.schemas.chat_schema import (
     WebSocketTicketResponse,
 )
 from app.services import chat_service
+from app.services import notification_service
 
 router = APIRouter()
 
@@ -120,6 +121,15 @@ async def send_message(
             MessageResponse.model_validate(message).model_dump(mode="json"),
         ),
     )
+    conversation = chat_service.get_authorized_conversation(db, conversation_id, user.id)
+    recipient_id = conversation.solicitud.viaje.creador_id if user.id == conversation.solicitud.pasajero_id else conversation.solicitud.pasajero_id
+    await notification_service.notify(
+        db, user_id=recipient_id, actor_id=user.id, notification_type="mensaje_nuevo",
+        title="Nuevo mensaje", body=message.contenido[:120],
+        idempotency_key=f"chat:{conversation_id}:{message.client_message_id or message.id}:{recipient_id}",
+        destination_url=f"/reservas/{conversation.solicitud_id}", reservation_id=conversation.solicitud_id,
+        trip_id=conversation.solicitud.viaje_id, conversation_id=conversation_id,
+    )
     return message
 
 
@@ -133,6 +143,7 @@ async def mark_read(
     user: Usuario = Depends(get_current_user),
 ):
     result = chat_service.mark_read(db, conversation_id, user.id)
+    notification_service.mark_conversation_read(db, conversation_id, user.id)
     await publish_chat_event(
         conversation_id,
         event_payload(
@@ -243,6 +254,15 @@ async def chat_websocket(
                         conversation_id,
                         event_payload("message.created", serialized),
                     )
+                    conversation = chat_service.get_authorized_conversation(db, conversation_id, user_id)
+                    recipient_id = conversation.solicitud.viaje.creador_id if user_id == conversation.solicitud.pasajero_id else conversation.solicitud.pasajero_id
+                    await notification_service.notify(
+                        db, user_id=recipient_id, actor_id=user_id, notification_type="mensaje_nuevo",
+                        title="Nuevo mensaje", body=message.contenido[:120],
+                        idempotency_key=f"chat:{conversation_id}:{message.client_message_id or message.id}:{recipient_id}",
+                        destination_url=f"/reservas/{conversation.solicitud_id}", reservation_id=conversation.solicitud_id,
+                        trip_id=conversation.solicitud.viaje_id, conversation_id=conversation_id,
+                    )
                 except (ValidationError, HTTPException) as error:
                     detail = (
                         error.detail
@@ -252,6 +272,7 @@ async def chat_websocket(
                     await _send_error(websocket, detail)
             elif incoming.type == "message.read":
                 result = chat_service.mark_read(db, conversation_id, user_id)
+                notification_service.mark_conversation_read(db, conversation_id, user_id)
                 await publish_chat_event(
                     conversation_id,
                     event_payload(

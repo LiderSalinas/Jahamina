@@ -10,6 +10,7 @@ from app.schemas.solicitud_schema import (
     SolicitudResponse,
 )
 from app.services import solicitud_service
+from app.services import notification_service
 
 router = APIRouter()
 
@@ -19,13 +20,21 @@ router = APIRouter()
     response_model=SolicitudResponse,
     status_code=status.HTTP_201_CREATED,
 )
-def crear_solicitud(
+async def crear_solicitud(
     viaje_id: int,
     data: SolicitudCreate,
     db: Session = Depends(get_db),
     usuario: Usuario = Depends(get_current_user),
 ):
-    return solicitud_service.crear_solicitud(db, viaje_id, usuario.id, data)
+    solicitud = solicitud_service.crear_solicitud(db, viaje_id, usuario.id, data)
+    await notification_service.notify(
+        db, user_id=solicitud.viaje.creador_id, actor_id=usuario.id,
+        notification_type="solicitud_nueva", title="Nueva solicitud de lugar",
+        body=f"{usuario.nombre} quiere sumarse a tu viaje.",
+        idempotency_key=f"request:{solicitud.id}:created", destination_url=f"/reservas/{solicitud.id}",
+        reservation_id=solicitud.id, trip_id=solicitud.viaje_id,
+    )
+    return solicitud
 
 
 @router.get("/solicitudes/mias", response_model=list[SolicitudResponse])
@@ -75,34 +84,51 @@ def obtener_solicitud(
     "/solicitudes/{solicitud_id}/aceptar",
     response_model=SolicitudResponse,
 )
-def aceptar_solicitud(
+async def aceptar_solicitud(
     solicitud_id: int,
     db: Session = Depends(get_db),
     usuario: Usuario = Depends(get_current_user),
 ):
-    return solicitud_service.responder_solicitud(
+    solicitud = solicitud_service.responder_solicitud(
         db,
         solicitud_id,
         usuario.id,
         True,
     )
+    await notification_service.notify(
+        db, user_id=solicitud.pasajero_id, actor_id=usuario.id,
+        notification_type="solicitud_aceptada", title="Solicitud aceptada",
+        body="Tu lugar fue confirmado. Ya podés coordinar el viaje.",
+        idempotency_key=f"request:{solicitud.id}:accepted", destination_url=f"/reservas/{solicitud.id}",
+        reservation_id=solicitud.id, trip_id=solicitud.viaje_id,
+        conversation_id=solicitud.conversacion.id if solicitud.conversacion else None,
+    )
+    return solicitud
 
 
 @router.patch(
     "/solicitudes/{solicitud_id}/rechazar",
     response_model=SolicitudResponse,
 )
-def rechazar_solicitud(
+async def rechazar_solicitud(
     solicitud_id: int,
     db: Session = Depends(get_db),
     usuario: Usuario = Depends(get_current_user),
 ):
-    return solicitud_service.responder_solicitud(
+    solicitud = solicitud_service.responder_solicitud(
         db,
         solicitud_id,
         usuario.id,
         False,
     )
+    await notification_service.notify(
+        db, user_id=solicitud.pasajero_id, actor_id=usuario.id,
+        notification_type="solicitud_rechazada", title="Solicitud no aceptada",
+        body="El conductor no pudo aceptar tu solicitud para este viaje.",
+        idempotency_key=f"request:{solicitud.id}:rejected", destination_url="/reservas",
+        reservation_id=solicitud.id, trip_id=solicitud.viaje_id,
+    )
+    return solicitud
 
 
 @router.patch(

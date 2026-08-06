@@ -150,6 +150,12 @@ export interface RelatedReservation {
   ultima_actividad: string;
 }
 
+export type NotificationType = "mensaje_nuevo" | "solicitud_nueva" | "solicitud_aceptada" | "solicitud_rechazada" | "punto_confirmado" | "conductor_en_camino" | "viaje_iniciado" | "viaje_cancelado" | "viaje_finalizado";
+export interface JahaminaNotification { id:number; tipo:NotificationType; titulo:string; cuerpo:string; reserva_id:number|null; viaje_id:number|null; conversacion_id:number|null; url_destino:string; leida:boolean; creada_en:string; leida_en:string|null; }
+export interface NotificationList { items:JahaminaNotification[]; total_no_leidas:number; }
+export interface PushConfig { enabled:boolean; public_key:string|null; }
+export interface PushSubscriptionItem { id:number; dispositivo_nombre:string|null; activa:boolean; mensajes:boolean; reservas:boolean; viaje:boolean; creada_en:string; ultima_utilizacion_en:string|null; }
+
 export interface RoadmapStopReal { id:number|null; reserva_id:number|null; orden:number; tipo:string; nombre_publico:string; zona_general:string|null; latitud:number|null; longitud:number|null; hora_estimada:string|null; hora_real:string|null; estado:string; }
 export interface RoadmapEventReal { id:number; reserva_id:number|null; tipo:string; descripcion_publica:string; metadata:Record<string, unknown>; created_at:string; }
 export interface Roadmap {

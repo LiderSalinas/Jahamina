@@ -3,6 +3,8 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
+from app.core.geo import validate_paraguay_coordinates
+
 
 class LocationUpdate(BaseModel):
     latitude: float = Field(ge=-90, le=90)
@@ -23,6 +25,7 @@ class LocationUpdate(BaseModel):
                 value = value.replace(tzinfo=timezone.utc)
             if abs(now - value) > timedelta(minutes=5):
                 raise ValueError("Timestamp de ubicación fuera de rango")
+        validate_paraguay_coordinates(self.latitude, self.longitude)
         return self
 
 

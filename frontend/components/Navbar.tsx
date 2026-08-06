@@ -1,58 +1,62 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
-
+import { usePathname } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@/components/AuthProvider";
 import { UnreadBadge } from "@/components/chat/UnreadBadge";
+import { NotificationBell } from "@/components/notifications/NotificationBell";
 import { api } from "@/lib/api";
 import type { UnreadSummary } from "@/lib/types";
 
+const links = [
+  ["Viajes", "/viajes"], ["Vehículos", "/vehiculos"], ["Reservas", "/reservas"],
+  ["Mis viajes", "/mis-viajes"], ["Perfil", "/perfil"],
+] as const;
+
 export function Navbar() {
   const { user, token, loading, logout } = useAuth();
-  const [unread, setUnread] = useState<UnreadSummary>({
-    total: 0,
-    conversaciones: [],
-  });
+  const pathname = usePathname();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [accountOpen, setAccountOpen] = useState(false);
+  const menuTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const accountRef = useRef<HTMLDivElement | null>(null);
+  const [unread, setUnread] = useState<UnreadSummary>({ total: 0, conversaciones: [] });
   useEffect(() => {
     if (!token) return;
     const refresh = () => api.unreadChats(token).then(setUnread).catch(() => undefined);
-    refresh();
-    const timer = window.setInterval(refresh, 10000);
+    refresh(); const timer = window.setInterval(refresh, 10000);
     window.addEventListener("jahamina:unread-changed", refresh);
-    return () => {
-      window.clearInterval(timer);
-      window.removeEventListener("jahamina:unread-changed", refresh);
-    };
+    return () => { window.clearInterval(timer); window.removeEventListener("jahamina:unread-changed", refresh); };
   }, [token]);
-  return (
-    <header className="border-b border-emerald-900/10 bg-white/90 backdrop-blur">
-      <nav className="container flex min-h-16 items-center justify-between gap-4">
-        <Link href="/" className="text-xl font-black tracking-tight text-emerald-800">
-          Jaha<span className="text-amber-500">mina</span>
-        </Link>
-        <div className="flex flex-wrap items-center justify-end gap-3 text-sm font-semibold">
-          {!loading && user ? (
-            <>
-              <Link href="/viajes">Viajes</Link>
-              <Link href="/vehiculos">Vehículos</Link>
-              <Link className="nav-with-badge" href={unread.conversaciones[0] ? `/reservas/${unread.conversaciones[0].solicitud_id}` : "/reservas"}>Reservas<UnreadBadge count={token ? unread.total : 0} /></Link>
-              <Link href="/mis-viajes">Mis viajes</Link>
-              <Link href="/perfil">Perfil</Link>
-              <button className="button-secondary" onClick={logout} type="button">
-                Salir
-              </button>
-            </>
-          ) : (
-            <>
-              <Link href="/login">Ingresar</Link>
-              <Link className="button-primary" href="/registro">
-                Crear cuenta
-              </Link>
-            </>
-          )}
-        </div>
-      </nav>
-    </header>
-  );
+  useEffect(() => {
+    if (!menuOpen && !accountOpen) return;
+    const closeWithEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setMenuOpen(false);
+        setAccountOpen(false);
+        menuTriggerRef.current?.focus();
+      }
+    };
+    const closeAccountOutside = (event: PointerEvent) => {
+      if (accountOpen && !accountRef.current?.contains(event.target as Node)) setAccountOpen(false);
+    };
+    document.addEventListener("keydown", closeWithEscape);
+    document.addEventListener("pointerdown", closeAccountOutside);
+    return () => {
+      document.removeEventListener("keydown", closeWithEscape);
+      document.removeEventListener("pointerdown", closeAccountOutside);
+    };
+  }, [accountOpen, menuOpen]);
+  const initials = user?.nombre.split(" ").slice(0, 2).map((part) => part[0]).join("").toUpperCase() || "J";
+  const isActive = (href: string) => pathname === href || pathname.startsWith(`${href}/`);
+
+  return <header className="app-header"><nav className="app-header-inner" aria-label="Navegación principal">
+    <Link href="/" className="brand" onClick={() => setMenuOpen(false)}><span className="brand-mark" aria-hidden="true">J</span><span><b>Jaha<em>mina</em></b><small>Vamos juntos</small></span></Link>
+    {!loading && user ? <>
+      <div className="desktop-navigation">{links.map(([label, href]) => <Link key={href} href={href} aria-current={isActive(href) ? "page" : undefined} className={isActive(href) ? "is-active" : ""}>{label}{href === "/reservas" && <UnreadBadge count={unread.total}/>}</Link>)}</div>
+      <div className="header-actions" ref={accountRef}>{token && <NotificationBell token={token}/>}<button className="account-trigger" type="button" aria-label="Abrir menú de cuenta" aria-expanded={accountOpen} aria-controls="account-navigation" onClick={() => setAccountOpen(value => !value)}><span>{initials}</span><span className="account-copy"><b>{user.nombre}</b><small>Mi cuenta</small></span><span aria-hidden="true">⌄</span></button><button ref={menuTriggerRef} className="mobile-menu-trigger" type="button" aria-label={menuOpen ? "Cerrar menú" : "Abrir menú"} aria-expanded={menuOpen} aria-controls="mobile-navigation" onClick={() => { setAccountOpen(false); setMenuOpen(value => !value); }}><span aria-hidden="true">{menuOpen ? "×" : "☰"}</span></button>{accountOpen && <div className="account-menu" id="account-navigation"><Link href="/perfil" onClick={() => setAccountOpen(false)}>Ver perfil</Link><button type="button" onClick={() => { setAccountOpen(false); logout(); }}>Cerrar sesión</button></div>}</div>
+      {menuOpen && <><button className="mobile-menu-backdrop" type="button" aria-label="Cerrar menú" onClick={() => setMenuOpen(false)}/><div id="mobile-navigation" className="mobile-navigation"><div className="mobile-account-summary"><span aria-hidden>{initials}</span><div><b>{user.nombre}</b><small>Tu cuenta Jahamina</small></div></div>{links.map(([label, href]) => <Link key={href} href={href} aria-current={isActive(href) ? "page" : undefined} onClick={() => setMenuOpen(false)} className={isActive(href) ? "is-active" : ""}>{label}{href === "/reservas" && <UnreadBadge count={unread.total}/>}</Link>)}<button type="button" onClick={() => { setMenuOpen(false); logout(); }}>Cerrar sesión</button></div></>}
+    </> : <div className="public-navigation"><Link href="/login">Ingresar</Link><Link className="button-primary" href="/registro">Crear cuenta</Link></div>}
+  </nav></header>;
 }

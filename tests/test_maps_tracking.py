@@ -1,10 +1,14 @@
+import asyncio
 from collections.abc import Callable
 from datetime import datetime, timedelta
 from typing import Any
 from uuid import uuid4
 
 from fastapi.testclient import TestClient
+import httpx
+import pytest
 from app.schemas.map_schema import RouteResponse
+from app.services import map_service
 
 
 def mobility_flow(client: TestClient, auth_headers, create_vehicle) -> dict[str, Any]:
@@ -57,6 +61,73 @@ def test_trip_coordinates_are_validated(client, auth_headers, create_vehicle):
     payload["origen_latitud"] = -25.28
     payload["origen_longitud"] = -181
     assert client.post("/viajes/", headers=driver, json=payload).status_code == 422
+
+
+@pytest.mark.parametrize("latitude,longitude", [(-34.60, -58.38), (-23.55, -46.63), (-17.39, -66.16)])
+def test_trip_rejects_coordinates_outside_paraguay(client, auth_headers, create_vehicle, latitude, longitude):
+    driver = auth_headers()
+    vehicle = create_vehicle(driver)
+    payload = {"origen":"Asunción","destino":"Luque","fecha":(datetime.now()+timedelta(days=1)).isoformat(),"vehiculo_id":vehicle["id"],"cupos_totales":2,"origen_latitud":latitude,"origen_longitud":longitude,"destino_latitud":-25.26,"destino_longitud":-57.57}
+    response = client.post("/viajes/", headers=driver, json=payload)
+    assert response.status_code == 422
+    assert "Paraguay" in response.text
+
+
+def test_meeting_point_outside_paraguay_is_rejected(client, auth_headers, create_vehicle):
+    flow = mobility_flow(client, auth_headers, create_vehicle)
+    response = client.post(f"/reservas/{flow['request']['id']}/punto-encuentro/proponer", headers=flow["passenger"], json={"texto":"Exterior","latitude":-34.60,"longitude":-58.38})
+    assert response.status_code == 422
+    assert "Paraguay" in response.text
+
+
+def test_geocoder_is_bounded_to_paraguay_and_filters_foreign_results(monkeypatch):
+    calls = []
+    payload = [
+        {"name":"Asunción","lat":"-25.2867","lon":"-57.3333","address":{"city":"Asunción","state":"Distrito Capital","country":"Paraguay","country_code":"py"}},
+        {"name":"Buenos Aires","lat":"-34.6037","lon":"-58.3816","address":{"city":"Buenos Aires","country":"Argentina","country_code":"ar"}},
+    ]
+
+    class Response:
+        def raise_for_status(self): return None
+        def json(self): return payload
+
+    class Client:
+        def __init__(self, **kwargs): pass
+        async def __aenter__(self): return self
+        async def __aexit__(self, *args): return None
+        async def get(self, url, **kwargs):
+            calls.append(kwargs["params"])
+            if kwargs["params"]["q"].startswith("Buenos Aires"):
+                return type("ForeignResponse", (), {"raise_for_status": lambda self: None, "json": lambda self: payload[1:]})()
+            return Response()
+
+    monkeypatch.setattr(httpx, "AsyncClient", Client)
+    query = f"Asunción-{uuid4().hex}"
+    results = asyncio.run(map_service.geocode(query))
+    cached = asyncio.run(map_service.geocode(query))
+    assert len(results) == 1
+    assert results[0].label.endswith("Paraguay")
+    assert calls[0]["countrycodes"] == "py"
+    assert calls[0]["bounded"] == 1
+    assert calls[0]["viewbox"] == "-62.65,-19.29,-54.26,-27.61"
+    assert calls[0]["addressdetails"] == 1
+    assert cached == results
+    assert len(calls) == 1
+    assert asyncio.run(map_service.geocode(f"Buenos Aires-{uuid4().hex}")) == []
+    assert len(asyncio.run(map_service.geocode(f"San Juan-{uuid4().hex}"))) == 1
+
+
+def test_geocoder_timeout_returns_controlled_error(monkeypatch):
+    class Client:
+        def __init__(self, **kwargs): pass
+        async def __aenter__(self): return self
+        async def __aexit__(self, *args): return None
+        async def get(self, *args, **kwargs): raise httpx.TimeoutException("timeout")
+
+    monkeypatch.setattr(httpx, "AsyncClient", Client)
+    with pytest.raises(Exception) as caught:
+        asyncio.run(map_service.geocode(f"San Juan-{uuid4().hex}"))
+    assert getattr(caught.value, "status_code", None) == 502
 
 
 def test_meeting_point_proposal_confirmation_and_security(client, auth_headers, create_vehicle):

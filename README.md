@@ -234,6 +234,8 @@ La publicación permite seleccionar coordenadas y previsualizar una ruta con Map
 
 Los proveedores abiertos predeterminados son solo para desarrollo. Producción requiere endpoints propios o un proveedor con SLA. Consulta `docs/PRIVACY.md`.
 
+Jahamina opera actualmente solo dentro de Paraguay. La geocodificación usa `countrycodes=py`, límites geográficos y una segunda validación del país devuelto por el proveedor. Origen, destino, puntos operativos y puntos de encuentro fuera del país reciben un error de validación. Los viajes internacionales no forman parte de esta versión.
+
 `NEXT_PUBLIC_MAP_STYLE_URL` configura el estilo vectorial del navegador y, como toda variable `NEXT_PUBLIC_*`, es visible públicamente. No debe contener claves privadas. El ejemplo usa OpenFreeMap Liberty sin token para desarrollo.
 
 ## Desarrollo desde un teléfono en la red local
@@ -258,6 +260,20 @@ Comprueba `http://IPV4_ACTUAL_DEL_EQUIPO:8000/health` y abre `http://IPV4_ACTUAL
 
 - No existe seguimiento en segundo plano, navegación giro a giro ni historial del recorrido.
 - La suite necesita una instancia PostgreSQL de desarrollo accesible.
+
+## Notificaciones y PWA
+
+Jahamina conserva avisos importantes en PostgreSQL y los actualiza en primer
+plano mediante Redis/WebSocket. Web Push es opcional y requiere un par VAPID:
+la clave privada permanece únicamente en el backend y la pública se entrega
+mediante `/notificaciones/configuracion-push`. El permiso se solicita solo al
+pulsar **Activar notificaciones**.
+
+Los Service Workers y Web Push requieren HTTPS, salvo en `localhost`. Para un
+teléfono use un proxy/túnel HTTPS de desarrollo o certificados locales de
+confianza sin versionar claves ni certificados. Configure la URL HTTPS pública
+del frontend/API, `CORS_ORIGINS` y WSS de forma coherente. No use HTTP LAN para
+validar Push: el navegador puede bloquearlo aunque el sitio sea accesible.
 
 ## Roadmap
 

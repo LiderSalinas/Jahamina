@@ -169,6 +169,42 @@ async def publish_chat_event(conversation_id: int, event: dict) -> None:
         await client.aclose()
 
 
+async def publish_notification_event(user_id: int, event: dict) -> None:
+    client = await require_redis()
+    try:
+        await client.publish(f"notifications:{user_id}", json.dumps(event))
+    finally:
+        await client.aclose()
+
+
+async def create_notification_ticket(user_id: int) -> str:
+    client = await require_redis()
+    expires_at = int(time.time()) + settings.ws_ticket_expire_seconds
+    ticket = f"{expires_at}.{secrets.token_urlsafe(32)}"
+    key = f"notifications:ticket:{hashlib.sha256(ticket.encode()).hexdigest()}"
+    try:
+        await client.set(key, str(user_id), ex=settings.ws_ticket_expire_seconds, nx=True)
+    finally:
+        await client.aclose()
+    return ticket
+
+
+async def consume_notification_ticket(ticket: str) -> int | None:
+    try:
+        expires_at = int(ticket.split(".", 1)[0])
+    except (ValueError, IndexError):
+        return None
+    if expires_at < int(time.time()):
+        raise TimeoutError("Ticket vencido")
+    client = await require_redis()
+    key = f"notifications:ticket:{hashlib.sha256(ticket.encode()).hexdigest()}"
+    try:
+        value = await client.getdel(key)
+    finally:
+        await client.aclose()
+    return int(value) if value else None
+
+
 async def acquire_connection(user_id: int) -> bool:
     client = await require_redis()
     key = f"chat:connections:{user_id}"

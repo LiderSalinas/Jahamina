@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 
 import { AuthProvider } from "@/components/AuthProvider";
 import { Navbar } from "@/components/Navbar";
@@ -9,7 +9,10 @@ import "maplibre-gl/dist/maplibre-gl.css";
 export const metadata: Metadata = {
   title: "Jahamina | Compartimos el camino",
   description: "Viajes compartidos para conectar comunidades en Paraguay.",
+  manifest: "/manifest.webmanifest",
 };
+
+export const viewport: Viewport = { themeColor: "#075b49" };
 
 export default function RootLayout({
   children,
@@ -19,7 +22,7 @@ export default function RootLayout({
       <body>
         <AuthProvider>
           <Navbar />
-          <main>{children}</main>
+          <main className="app-main">{children}</main>
         </AuthProvider>
       </body>
     </html>

@@ -39,7 +39,7 @@ def test_login_client_uses_oauth_form_contract_and_public_api_url():
 def test_websocket_url_contract_preserves_host_port_path_and_ticket():
     cases = (
         ("http://localhost:8000", "ws://localhost:8000/ws/chat?ticket=single-use"),
-        ("http://192.168.0.107:8000", "ws://192.168.0.107:8000/ws/chat?ticket=single-use"),
+        ("http://lan-api.test:8000", "ws://lan-api.test:8000/ws/chat?ticket=single-use"),
         ("https://api.example.com", "wss://api.example.com/ws/chat?ticket=single-use"),
     )
     for api_base, expected in cases:
@@ -56,8 +56,8 @@ def test_login_succeeds_from_supported_frontend_origins(
     for origin in (
         "http://localhost:3000",
         "http://127.0.0.1:3000",
-        "http://192.168.0.107:3000",
-        "http://192.168.1.20:3000",
+        "http://lan-frontend.test:3000",
+        "https://app.jahamina.test",
     ):
         response = client.options(
             "/auth/login",
@@ -86,7 +86,7 @@ def test_cors_rejects_unknown_origin(client: TestClient):
     response = client.options(
         "/auth/login",
         headers={
-            "Origin": "http://192.168.0.250:3000",
+            "Origin": "https://unauthorized.example",
             "Access-Control-Request-Method": "POST",
             "Access-Control-Request-Headers": "content-type",
         },

@@ -293,3 +293,44 @@ Estado: completado y validado.
 - Se retiraron de la pantalla principal la ubicación, ETA, ocupación repetida, lista operativa de paradas y acciones intermedias.
 - Se conserva un único botón principal, el recorrido esquemático compacto, el punto de encuentro y el chat.
 - `/dev/hoja-ruta` permanece disponible como referencia del prototipo previo.
+- Flujo real conectado a tres acciones del conductor: salir, iniciar y finalizar, sin transiciones visibles intermedias.
+- Cada acción conserva eventos y mensajes de sistema idempotentes y difunde `roadmap.updated` tras confirmar la transacción.
+
+# 2026-08-04 — Alcance geográfico Paraguay
+
+- Geocodificación limitada a `py` con `bounded=1`, viewbox, address details y filtrado defensivo.
+- Validación backend central para viajes, puntos de encuentro, rutas y ubicación activa.
+- MapLibre inicia, se encuadra y limita a los límites operativos de Paraguay.
+- Origen, destino, punto de salida y punto de llegada requieren selecciones con coordenadas válidas.
+- La ubicación del dispositivo fuera de Paraguay se rechaza con un mensaje explícito.
+
+# 2026-08-04 — Publicación de viaje en tres etapas
+
+- La publicación real se organiza en `Recorrido`, `Detalles` y `Confirmación`, sin cambiar el contrato del backend.
+- El mapa queda como apoyo lateral en escritorio y vista compacta superior en móvil.
+- La búsqueda reutilizable incorpora estados claros de carga, ausencia de resultados y error del proveedor.
+- La confirmación permite editar cada bloque sin perder los datos y mantiene una única acción principal.
+- Se conserva `/dev/publicar-viaje` como comparación visual con datos simulados.
+- Validación: ESLint y build de producción de Next.js aprobados.
+
+# 2026-08-04 — Notificaciones internas y Web Push
+
+- Añadidas notificaciones persistentes e idempotentes y suscripciones Push por dispositivo.
+- Redis/WebSocket actualiza la campana sin recargar; Web Push es complementario y nunca revierte la acción principal.
+- Integrados mensajes, solicitudes, aceptación/rechazo, punto confirmado, salida, inicio, cancelación y finalización.
+- Añadidos Service Worker, manifiesto PWA, permiso contextual y apertura segura de rutas internas.
+- VAPID permanece desactivado por defecto y no se versionaron claves reales.
+
+# 2026-08-04 — Sistema visual oficial, fase 1
+
+- Consolidada la base visual con tokens semánticos, tipografía de sistema y jerarquía consistente.
+- Header superior responsive con navegación activa, menú móvil, cuenta y notificaciones; sin sidebar.
+- Rediseñada `/reservas/{id}` con datos reales, estado principal, cinco pasos, recorrido compacto, punto y chat.
+- Se conservaron acciones, WebSockets, mapas y contratos existentes sin cambios de backend.
+- ESLint y build de producción aprobados.
+# Actualización 2026-08-04 — Sistema visual oficial, fase 2
+
+- Se extendió la identidad visual oficial a login, registro, viajes disponibles, publicación, mis viajes, reservas, vehículos, perfil y notificaciones.
+- Se añadieron primitivas compartidas para encabezados, superficies, estados asíncronos y contraseñas visibles/ocultas.
+- Se conservaron contratos API, lógica de autenticación, mapas, chat, WebSockets y notificaciones.
+- Validaciones: `npm run lint` y `npm run build` aprobados; `git diff --check` sin errores.

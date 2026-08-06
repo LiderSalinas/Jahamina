@@ -13,6 +13,7 @@ from app.models.mensaje import Mensaje
 from app.models.solicitud_viaje import SolicitudViaje
 from app.models.usuario import Usuario
 from app.services import viaje_service
+from app.services import notification_service
 from app.schemas.solicitud_schema import SolicitudResponse
 from app.schemas.chat_schema import MessageResponse
 from app.schemas.viaje_schema import ViajeCreate, ViajeResponse
@@ -56,6 +57,13 @@ async def cancelar_viaje(
     for event_type in ("trip.status.changed", "trip.event.created", "roadmap.updated"):
         await publish_roadmap_event(viaje.id, {"type": event_type, "data": {"viaje_id": viaje.id, "estado": "cancelado"}, "timestamp": timestamp})
     for request in db.scalars(select(SolicitudViaje).where(SolicitudViaje.viaje_id == viaje.id)):
+        await notification_service.notify(
+            db, user_id=request.pasajero_id, actor_id=usuario.id, notification_type="viaje_cancelado",
+            title="Viaje cancelado", body="El conductor canceló el viaje.",
+            idempotency_key=f"trip:{viaje.id}:cancelled:{request.pasajero_id}",
+            destination_url=f"/reservas/{request.id}", reservation_id=request.id, trip_id=viaje.id,
+            conversation_id=request.conversacion.id if request.conversacion else None,
+        )
         if not request.conversacion:
             continue
         message = db.scalar(select(Mensaje).where(
