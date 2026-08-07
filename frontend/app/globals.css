@@ -723,12 +723,22 @@ button:disabled {
 .meeting-area>.mobility-panel,.chat-area,.trip-info-area { background:white; }.meeting-icon { background:#e8f3ed; }.chat-preview-person>span { background:#075b49; color:white; }.chat-preview-messages li { border-left-color:#bdd7ca; border-radius:0 .65rem .65rem 0; background:#f6f9f7; }
 .trip-info-area dl { padding:.25rem 1rem 1rem; }.trip-info-area dd { font-weight:650; }
 .button-primary,.button-secondary { transition:background-color .18s ease,border-color .18s ease,transform .18s ease; }.button-primary:active:not(:disabled),.button-secondary:active:not(:disabled) { transform:translateY(1px); }
+.trip-real-map { overflow:hidden; padding:0!important; }
+.trip-real-map>header { margin:0; padding:1.15rem 1.25rem; }
+.trip-real-map .publish-map-stage,.trip-real-map .publish-map-stage>.map-container,.trip-real-map .publish-map-stage .map-view { min-height:27rem; }
+.trip-real-map .publish-map-stage .map-view { border-radius:0; }
+.trip-real-map .publish-map-summary { border-top:0; padding:1rem 1.25rem 1.15rem; }
+.trip-real-map .publish-route-points { grid-template-columns:minmax(0,1fr) auto minmax(0,1fr); align-items:center; gap:.8rem; }
+.trip-real-map .publish-route-points>span { grid-template-columns:.8rem minmax(0,1fr); }
+.trip-real-map .publish-route-points>span:last-child { text-align:right; }.trip-real-map .publish-route-points>span:last-child i { grid-column:2; }.trip-real-map .publish-route-points>span:last-child small,.trip-real-map .publish-route-points>span:last-child b { grid-column:1; grid-row:auto; }
+.trip-real-map .publish-route-points>em { position:static; width:3rem; height:2px; border-radius:999px; background:linear-gradient(90deg,var(--color-primary),var(--color-accent)); }
+.meeting-empty-copy { margin-top:.18rem; color:var(--color-text-muted); font-size:.72rem; line-height:1.4; }
 
 @media (max-width:1023px) {
   .reservation-dashboard { grid-template-columns:1fr; }.status-surface { grid-template-columns:minmax(0,1fr) minmax(15rem,.55fr); }.route-area .roadmap-map-card,.route-empty { min-height:25rem; }.route-area .roadmap-map svg { min-height:17rem; }
 }
 @media (max-width:640px) {
-  .reservation-page { width:calc(100% - 2rem); }.status-surface { grid-template-columns:1fr; border-radius:1.25rem; padding:1.1rem; }.vehicle-image { min-height:10rem; }.trip-facts { grid-template-columns:1fr 1fr; }.trip-facts>div:last-child { grid-column:1/-1; }.route-area .roadmap-map-card,.route-empty { min-height:19rem; padding:1rem; }.route-area .roadmap-map svg { min-height:12rem; }.map-stop-preview { grid-template-columns:1fr 1fr; }.map-stop-preview>span:nth-child(2) { text-align:right; }.map-stop-preview>span:last-child { grid-column:1/-1; border-top:1px solid #edf2ef; padding-top:.55rem; text-align:left; }.route-fallback-meta { align-items:flex-start; flex-direction:column; }.timeline-area>.roadmap-card,.meeting-area>.mobility-panel { padding:1rem; }
+  .reservation-page { width:calc(100% - 2rem); }.status-surface { grid-template-columns:1fr; border-radius:1.25rem; padding:1.1rem; }.vehicle-image { min-height:10rem; }.trip-facts { grid-template-columns:1fr 1fr; }.trip-facts>div:last-child { grid-column:1/-1; }.route-area .roadmap-map-card:not(.trip-real-map),.route-empty { min-height:19rem; padding:1rem; }.route-area .roadmap-map svg { min-height:12rem; }.map-stop-preview { grid-template-columns:1fr 1fr; }.map-stop-preview>span:nth-child(2) { text-align:right; }.map-stop-preview>span:last-child { grid-column:1/-1; border-top:1px solid #edf2ef; padding-top:.55rem; text-align:left; }.route-fallback-meta { align-items:flex-start; flex-direction:column; }.timeline-area>.roadmap-card,.meeting-area>.mobility-panel { padding:1rem; }.trip-real-map .publish-map-stage,.trip-real-map .publish-map-stage>.map-container,.trip-real-map .publish-map-stage .map-view { min-height:18rem; }.trip-real-map>header { padding:1rem; }.trip-real-map .publish-map-summary { padding:.9rem 1rem 1rem; }.trip-real-map .publish-route-points { gap:.45rem; }.trip-real-map .publish-route-points>em { width:1.5rem; }
 }
 
 /* El mapa real es la visual principal de la publicación */

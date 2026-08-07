@@ -396,3 +396,10 @@ Estado: completado y validado.
 - Reequilibrado el hero para 1366×768, ampliando el vehículo y reduciendo altura/peso de CTA y timeline sin alterar la estructura.
 - Añadida una ruta compacta dentro del estado y refinada la ilustración 3/4 con volumen, cristales, luces, detalles de carrocería y ruedas.
 - Validación aprobada: ESLint, build de producción, 126 pruebas Pytest y `git diff --check`.
+
+# 2026-08-07 — Mapa real en reserva
+
+- La ruta de la reserva reutiliza `MapView`, `decodePolyline`, marcadores y controles de la publicación cuando existen coordenadas válidas de origen y destino.
+- `TripMapPreview` se conserva como fallback para recorridos sin geografía suficiente; nunca se presenta un mapa vacío por falta de datos.
+- El punto de encuentro sin ubicación adopta un único empty state breve y, cuando existe, conserva su mini mapa real.
+- Validación aprobada: ESLint, build de producción, 126 pruebas Pytest y `git diff --check`.
