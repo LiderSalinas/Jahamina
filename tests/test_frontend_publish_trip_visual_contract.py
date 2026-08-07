@@ -14,7 +14,7 @@ def test_real_publish_route_reuses_single_three_step_flow():
     page = PAGE.read_text(encoding="utf-8")
     flow = FLOW.read_text(encoding="utf-8")
     assert "<PublishTripFlow/>" in page
-    assert '["Recorrido", "Detalles", "Confirmación"]' in flow
+    assert '["Ruta", "Detalles", "Confirmación"]' in flow
     assert "¿A dónde vamos?" in flow
     assert "Prepará tu viaje" in flow
     assert "Revisá antes de publicar" in flow
@@ -47,13 +47,13 @@ def test_publish_layout_has_official_desktop_and_mobile_proportions():
     assert "@media (max-width:360px)" in styles
 
 
-def test_schematic_appears_only_with_real_selected_endpoints():
+def test_real_map_replaces_the_redundant_schematic_in_publish_flow():
     flow = FLOW.read_text(encoding="utf-8")
     schematic = SCHEMATIC.read_text(encoding="utf-8")
 
-    assert "step === 1 && <PublishRouteSchematic" in flow
-    assert "origin={originPoint ? origin : undefined}" in flow
-    assert "destination={destinationPoint ? destination : undefined}" in flow
+    assert "<PublishRouteSchematic" not in flow
+    assert "<MapView markers={markers}" in flow
+    assert "publish-route-points" in flow
     assert "Tu recorrido" in schematic
     assert "{origin}" in schematic
     assert "{destination}" in schematic
@@ -107,14 +107,14 @@ def test_real_map_uses_provider_geometry_with_direct_fallback():
     assert "return [originPoint, destinationPoint]" in flow
     assert "route={mapRoute}" in flow
     assert "export function decodePolyline" in polyline
-    assert "Recorrido disponible" in flow
+    assert "La ruta vial no está disponible." in flow
 
 
 def test_real_map_route_has_premium_depth_layers():
     map_view = MAP_VIEW.read_text(encoding="utf-8")
 
     assert 'id: "route-shadow"' in map_view
-    assert '"line-color": "#b9d9ca"' in map_view
+    assert '"line-color": "#d7e9e0"' in map_view
     assert '"line-color": "#075b49"' in map_view
     assert '"line-cap": "round"' in map_view
     assert 'map.fitBounds(bounds' in map_view
@@ -135,9 +135,9 @@ def test_route_summary_is_below_map_instead_of_covering_it():
 
     assert 'className="publish-map-overlay"' not in flow
     assert 'className="publish-map-stage"><MapView' in flow
-    assert 'className="publish-map-summary"' in flow
-    assert "Tiempo estimado" in flow
-    assert "{route && <dl>" in flow
+    assert "publish-map-summary ${" in flow
+    assert "route.duration_minutes" in flow
+    assert "{route && <p" in flow
 
 
 def test_details_use_selectable_vehicle_cards_and_bounded_seat_stepper():

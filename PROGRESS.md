@@ -362,3 +362,13 @@ Estado: completado y validado.
 - Origen/destino incorporan conexión visual, autocomplete compacto y estados de foco; Detalles y Confirmación mantienen jerarquías y acciones de edición claras.
 - El CTA de ruta vuelve a pertenecer al formulario, eliminando el vacío que producía el alto del mapa en desktop; móvil queda protegido contra desborde horizontal.
 - Validación final aprobada: ESLint, build de producción de Next.js y `git diff --check`.
+
+# 2026-08-07 — Corrección de detección Web Push en frontend
+
+- Identificada la causa del falso estado no configurado: la tarjeta y los helpers exigían `NEXT_PUBLIC_VAPID_PUBLIC_KEY` antes de consultar la configuración pública del backend.
+- `GET /notificaciones/configuracion-push` pasa a ser la fuente autoritativa para `enabled` y `public_key`; la variable de Vercel queda únicamente como fallback público cuando el backend está habilitado.
+- La carga distingue comprobación, disponible, suscrito, permiso denegado, navegador incompatible, contexto inseguro, backend deshabilitado y error de red.
+- `Notification.requestPermission()` continúa ejecutándose solamente tras pulsar **Activar notificaciones**.
+- Restauración, unsubscribe, Service Worker, logout y registro por dispositivo permanecen sin cambios funcionales.
+- Contratos Push ampliados y contratos visuales previamente desactualizados alineados con el diseño vigente.
+- Validación: 126 pruebas Pytest, ESLint, build de producción de Next.js y `git diff --check` aprobados.

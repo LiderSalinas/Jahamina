@@ -22,9 +22,37 @@ export function configuredVapidPublicKey(): string | null {
   return process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY?.trim() || null;
 }
 
+export type PushSetupErrorCode = "unconfigured" | "unsupported" | "insecure";
+
+export class PushSetupError extends Error {
+  constructor(public readonly code: PushSetupErrorCode, message: string) {
+    super(message);
+    this.name = "PushSetupError";
+  }
+}
+
 export function pushSupportState(): "supported" | "unsupported" | "insecure" {
   if (typeof window === "undefined" || !("serviceWorker" in navigator) || !("PushManager" in window) || !("Notification" in window)) return "unsupported";
   return window.isSecureContext ? "supported" : "insecure";
+}
+
+export async function loadPushPublicKey(): Promise<string> {
+  const config = await api.pushConfig();
+  if (!config.enabled) throw new PushSetupError("unconfigured", "Las notificaciones Push no están habilitadas en el servidor.");
+  const publicKey = config.public_key?.trim() || configuredVapidPublicKey();
+  if (!publicKey) throw new PushSetupError("unconfigured", "La clave pública Push no está disponible.");
+  try {
+    urlBase64ToUint8Array(publicKey);
+  } catch {
+    throw new PushSetupError("unconfigured", "La configuración pública Push no es válida.");
+  }
+  return publicKey;
+}
+
+function assertPushSupport(): void {
+  const support = pushSupportState();
+  if (support === "unsupported") throw new PushSetupError("unsupported", "Este navegador no admite notificaciones Push.");
+  if (support === "insecure") throw new PushSetupError("insecure", "Las notificaciones requieren HTTPS o localhost.");
 }
 
 async function registrationForActivation(): Promise<ServiceWorkerRegistration> {
@@ -48,13 +76,8 @@ async function saveSubscription(subscription: PushSubscription, token: string): 
 }
 
 export async function activatePush(token: string): Promise<PushSubscriptionItem> {
-  const support = pushSupportState();
-  if (support !== "supported") throw new Error(support === "insecure" ? "Las notificaciones requieren HTTPS o localhost." : "Este navegador no admite notificaciones Push.");
-  const publicKey = configuredVapidPublicKey();
-  if (!publicKey) throw new Error("Las notificaciones Push no están configuradas.");
-  const config = await api.pushConfig();
-  if (!config.enabled || !config.public_key) throw new Error("Las notificaciones Push no están habilitadas en el servidor.");
-  if (config.public_key !== publicKey) throw new Error("La configuración Push del frontend y del servidor no coincide.");
+  assertPushSupport();
+  const publicKey = await loadPushPublicKey();
   const permission = Notification.permission === "granted" ? "granted" : await Notification.requestPermission();
   if (permission !== "granted") throw new DOMException("Permiso denegado", "NotAllowedError");
   const registration = await registrationForActivation();
@@ -71,7 +94,7 @@ export async function activatePush(token: string): Promise<PushSubscriptionItem>
 }
 
 export async function restorePushSubscription(token: string): Promise<PushSubscriptionItem | null> {
-  if (pushSupportState() !== "supported" || Notification.permission !== "granted" || !configuredVapidPublicKey()) return null;
+  if (pushSupportState() !== "supported" || Notification.permission !== "granted") return null;
   const registration = await navigator.serviceWorker.getRegistration("/");
   const subscription = await registration?.pushManager.getSubscription();
   if (!subscription) return null;
