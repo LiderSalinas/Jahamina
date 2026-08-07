@@ -397,6 +397,14 @@ Estado: completado y validado.
 - Añadida una ruta compacta dentro del estado y refinada la ilustración 3/4 con volumen, cristales, luces, detalles de carrocería y ruedas.
 - Validación aprobada: ESLint, build de producción, 126 pruebas Pytest y `git diff --check`.
 
+# 2026-08-07 — Presentación segura de fotos
+
+- La auditoría confirmó que Usuario, Vehículo y roadmap no persisten todavía URLs de imagen; no se añadieron migraciones, formularios ficticios ni proveedores de archivos.
+- `UserAvatar` centraliza URL HTTP(S), carga diferida, recorte circular y retorno automático a iniciales ante ausencia, URL inválida o error de red.
+- `VehicleImage` prioriza una foto HTTP(S) con `object-fit: contain` y retorna a la ilustración local si falla; color y matrícula siguen siendo opcionales y la matrícula adopta un badge discreto.
+- Perfil y hero reutilizan `UserAvatar`; los contratos frontend quedan preparados para recibir `imagen_url` cuando exista una fuente persistente real.
+- Validación aprobada: ESLint, build de producción, 129 pruebas Pytest y `git diff --check`.
+
 # 2026-08-07 — Mapa real en reserva
 
 - La ruta de la reserva reutiliza `MapView`, `decodePolyline`, marcadores y controles de la publicación cuando existen coordenadas válidas de origen y destino.

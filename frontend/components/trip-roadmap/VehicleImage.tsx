@@ -1,22 +1,28 @@
+"use client";
+
+import { useState } from "react";
+import { safeRemoteImageUrl } from "@/lib/media";
+
 type VehicleImageProps = {
   brand: string;
   model: string;
   color?: string | null;
   registration?: string | null;
   imageUrl?: string | null;
-  catalogImageUrl?: string | null;
 };
 
-function safeVisualUrl(value?: string | null) {
-  return value && (/^https?:\/\//i.test(value) || value.startsWith("/")) ? value : null;
-}
-
-export function VehicleImage({ brand, model, color, registration, imageUrl, catalogImageUrl }: VehicleImageProps) {
+export function VehicleImage({ brand, model, color, registration, imageUrl }: VehicleImageProps) {
   const label = `${brand} ${model}`.trim();
-  const resolvedImageUrl = safeVisualUrl(imageUrl) ?? safeVisualUrl(catalogImageUrl);
+  const resolvedImageUrl = safeRemoteImageUrl(imageUrl);
+  const [failedUrl, setFailedUrl] = useState<string | null>(null);
+  const showPhoto = Boolean(resolvedImageUrl && failedUrl !== resolvedImageUrl);
 
-  return <figure className={`vehicle-image ${resolvedImageUrl ? "has-image" : "is-fallback"}`} aria-label={label || "Vehículo del viaje"}>
-    {resolvedImageUrl ? <span className="vehicle-image-photo" role="img" aria-label={label} style={{ backgroundImage: `url(${JSON.stringify(resolvedImageUrl).slice(1, -1)})` }}/> : <svg viewBox="0 0 460 220" role="img" aria-label={`Ilustración de ${label}`}>
+  return <figure className={`vehicle-image ${showPhoto ? "has-image" : "is-fallback"}`} aria-label={label || "Vehículo del viaje"}>
+    {showPhoto ? <>
+      {/* Arbitrary vehicle URLs cannot use a global Next/Image host allowlist safely. */}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img className="vehicle-image-photo" src={resolvedImageUrl!} alt={label} loading="lazy" decoding="async" referrerPolicy="no-referrer" onError={() => setFailedUrl(resolvedImageUrl)}/>
+    </> : <svg viewBox="0 0 460 220" role="img" aria-label={`Ilustración de ${label}`}>
       <defs><linearGradient id="vehicle-paint" x1="0" x2="1" y1="0" y2="1"><stop offset="0" stopColor="#ffffff"/><stop offset="0.48" stopColor="#e8eee9"/><stop offset="1" stopColor="#a8bdb3"/></linearGradient><linearGradient id="vehicle-glass" x1="0" x2="1" y1="0" y2="1"><stop offset="0" stopColor="#d9eee7"/><stop offset="0.55" stopColor="#78a89a"/><stop offset="1" stopColor="#315e53"/></linearGradient></defs>
       <ellipse className="vehicle-shadow" cx="228" cy="174" rx="158" ry="16"/>
       <path className="vehicle-body" d="M45 139c6-28 29-43 68-49l54-9 35-43h103l55 47 34 13c14 6 22 18 20 35l-3 24-352 5-17-9 3-14Z"/>
@@ -30,6 +36,6 @@ export function VehicleImage({ brand, model, color, registration, imageUrl, cata
       <g className="vehicle-wheel-set"><circle className="vehicle-wheel" cx="119" cy="157" r="29"/><circle className="vehicle-rim" cx="119" cy="157" r="17"/><path d="m119 142v30m-15-15h30m-26-11 22 22m0-22-22 22"/><circle className="vehicle-hub" cx="119" cy="157" r="6"/></g>
       <g className="vehicle-wheel-set"><circle className="vehicle-wheel" cx="339" cy="157" r="29"/><circle className="vehicle-rim" cx="339" cy="157" r="17"/><path d="m339 142v30m-15-15h30m-26-11 22 22m0-22-22 22"/><circle className="vehicle-hub" cx="339" cy="157" r="6"/></g>
     </svg>}
-    <figcaption><small>Vehículo asignado</small><b>{label}</b>{(color || registration) && <span>{[color, registration].filter(Boolean).join(" · ")}</span>}</figcaption>
+    <figcaption><small>Vehículo asignado</small><b>{label}</b>{(color || registration) && <span className="vehicle-image-meta">{color && <span>{color}</span>}{registration && <em>{registration}</em>}</span>}</figcaption>
   </figure>;
 }

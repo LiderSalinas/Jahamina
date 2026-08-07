@@ -4,6 +4,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { api, ApiError } from "@/lib/api";
+import { UserAvatar } from "@/components/ui/UserAvatar";
 import type { RelatedReservation, Roadmap, Trip, Vehicle } from "@/lib/types";
 import { TripTimeline } from "./TripTimeline";
 import { TripRouteMap } from "./TripRouteMap";
@@ -65,7 +66,7 @@ function BasicReservationDetail({ data, token, onCancelled }: { data: BasicReser
   };
   return <article className="pending-reservation-detail">
     <header className="pending-reservation-heading"><div><p className="ui-eyebrow">Reserva #{reservation.reserva_id}</p><h1>{reservation.origen} <span aria-hidden>→</span> {reservation.destino}</h1><p>{departure.toLocaleString("es-PY", { dateStyle: "long", timeStyle: "short" })}</p></div><span className={`status-badge ${status.tone}`}>{reservation.estado}</span></header>
-    <section className="pending-reservation-status" aria-labelledby="pending-status-title"><div><p className="ui-eyebrow">Estado actual</p><h2 id="pending-status-title">{status.title}</h2><p>{status.description}</p></div><div className="participant-summary"><span className="participant-avatar" aria-hidden>{reservation.participante.split(" ").slice(0, 2).map((part) => part[0]).join("").toUpperCase()}</span><div><small>{reservation.rol === "pasajero" ? "Conductor" : "Pasajero"}</small><b>{reservation.participante}</b></div></div></section>
+    <section className="pending-reservation-status" aria-labelledby="pending-status-title"><div><p className="ui-eyebrow">Estado actual</p><h2 id="pending-status-title">{status.title}</h2><p>{status.description}</p></div><div className="participant-summary"><UserAvatar name={reservation.participante} size="md"/><div><small>{reservation.rol === "pasajero" ? "Conductor" : "Pasajero"}</small><b>{reservation.participante}</b></div></div></section>
     <section className="pending-reservation-summary" aria-labelledby="pending-summary-title"><div className="section-intro"><div><p className="ui-eyebrow">Detalle</p><h2 id="pending-summary-title">Información de la solicitud</h2></div></div><dl><div><dt>Origen</dt><dd>{reservation.origen}</dd></div><div><dt>Destino</dt><dd>{reservation.destino}</dd></div><div><dt>Fecha</dt><dd>{departure.toLocaleDateString("es-PY", { dateStyle: "medium" })}</dd></div><div><dt>Hora</dt><dd>{departure.toLocaleTimeString("es-PY", { hour: "2-digit", minute: "2-digit" })}</dd></div><div><dt>Estado</dt><dd>{status.title}</dd></div>{trip && <div><dt>Ocupación</dt><dd>{Math.max(trip.cupos_totales - trip.cupos_disponibles, 0)} de {trip.cupos_totales}</dd></div>}{vehicle && <div><dt>Vehículo</dt><dd>{vehicle.marca} {vehicle.modelo} · {vehicle.color}</dd></div>}</dl></section>
     {error && <p className="error-message" role="alert">{error}</p>}
     <footer className="pending-reservation-actions"><Link className="button-secondary" href="/reservas">Volver a reservas</Link>{canCancel && <button className="button-danger" type="button" disabled={busy} onClick={() => void cancel()}>{busy ? "Cancelando…" : "Cancelar solicitud"}</button>}</footer>
@@ -156,8 +157,6 @@ export function RealTripRoadmap({ reservationId, token, meetingPoint, chat }: { 
   const actionLabel = action.id === "chat" ? "Abrir chat" : action.label;
   const stage = visibleStatus(data);
   const participant = data.reserva.rol_actual === "conductor" ? data.pasajero_actual : data.conductor;
-  const driverInitials = data.conductor.nombre.split(" ").slice(0, 2).map((part) => part[0]).join("").toUpperCase();
-  const driverImage = data.conductor.imagen_url && (/^https?:\/\//i.test(data.conductor.imagen_url) || data.conductor.imagen_url.startsWith("/")) ? data.conductor.imagen_url : null;
   const departure = new Date(data.viaje.fecha_salida);
   const context = { reservationState: data.reserva.estado, tripState: data.viaje.estado };
   const runAction = async () => {
@@ -176,7 +175,7 @@ export function RealTripRoadmap({ reservationId, token, meetingPoint, chat }: { 
 
     <section className="status-surface" aria-labelledby="reservation-status">
       <div className="status-copy"><p className="ui-eyebrow">Estado actual</p><div className="hero-route" aria-label={`Desde ${data.viaje.origen} hasta ${data.viaje.destino}`}><span><i aria-hidden/>{data.viaje.origen}</span><b aria-hidden>→</b><span><i aria-hidden/>{data.viaje.destino}</span></div><h2 id="reservation-status">{stage}</h2><p>{statusDescription(data, stage)}</p></div>
-      <div className="status-people"><div className="driver-summary"><span className={`participant-avatar ${driverImage ? "has-photo" : ""}`} aria-hidden style={driverImage ? { backgroundImage: `url(${JSON.stringify(driverImage).slice(1, -1)})` } : undefined}>{driverImage ? "" : driverInitials}</span><div><small>Tu conductor</small><b>{data.conductor.nombre}</b><span>Conductor de Jahamina</span></div></div>{data.vehiculo ? <VehicleImage brand={data.vehiculo.marca} model={data.vehiculo.modelo} color={data.vehiculo.color} registration={data.vehiculo.matricula} imageUrl={data.vehiculo.imagen_url} catalogImageUrl={data.vehiculo.catalogo_imagen_url}/> : <div className="vehicle-unavailable"><span aria-hidden>◇</span><div><small>Vehículo</small><b>Información no disponible</b></div></div>}</div>
+      <div className="status-people"><div className="driver-summary"><UserAvatar name={data.conductor.nombre} imageUrl={data.conductor.imagen_url} size="lg"/><div><small>Tu conductor</small><b>{data.conductor.nombre}</b><span>Conductor de Jahamina</span></div></div>{data.vehiculo ? <VehicleImage brand={data.vehiculo.marca} model={data.vehiculo.modelo} color={data.vehiculo.color} registration={data.vehiculo.matricula} imageUrl={data.vehiculo.imagen_url}/> : <div className="vehicle-unavailable"><span aria-hidden>◇</span><div><small>Vehículo</small><b>Información no disponible</b></div></div>}</div>
       <dl className="trip-facts"><div><dt>Salida programada</dt><dd>{departure.toLocaleTimeString("es-PY", { hour: "2-digit", minute: "2-digit" })}</dd></div><div><dt>Ocupación</dt><dd>{data.ocupacion.ocupados} de {data.ocupacion.totales} lugares</dd></div><div><dt>Tu lugar</dt><dd>{data.reserva.rol_actual === "conductor" ? "Conductor" : "Pasajero"}<small>Viajás con {participant.nombre}</small></dd></div></dl>
       {action.enabled && !["finalizado", "cancelado"].includes(data.viaje.estado) && <div className="context-action"><div><small>Próxima acción</small><b>{actionLabel}</b></div><button className="button-primary" type="button" disabled={busy} onClick={() => void runAction()}>{busy ? "Actualizando…" : actionLabel}</button></div>}
     </section>
