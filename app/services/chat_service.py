@@ -171,6 +171,7 @@ def to_response(
         puede_escribir=can_write(conversation),
         no_leidos=unread,
         participante=participant.nombre if participant else "Participante",
+        participante_imagen_url=participant.imagen_url if participant else None,
         viaje_id=trip.id,
         origen=trip.origen,
         destino=trip.destino,

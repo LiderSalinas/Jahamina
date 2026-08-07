@@ -45,6 +45,10 @@ class Settings(BaseSettings):
     web_push_subject: str = "mailto:admin@example.com"
     web_push_enabled: bool = False
     web_push_test_enabled: bool = False
+    cloudinary_cloud_name: str | None = None
+    cloudinary_api_key: str | None = None
+    cloudinary_api_secret: str | None = None
+    media_max_upload_bytes: int = 5 * 1024 * 1024
 
     model_config = SettingsConfigDict(
         env_file=".env",

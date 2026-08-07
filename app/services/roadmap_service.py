@@ -157,8 +157,8 @@ def get_roadmap(db: Session, reservation_id: int, user_id: int) -> RoadmapRespon
     return RoadmapResponse(
         reserva=RoadmapReserva(id=request.id, estado=request.estado, rol_actual=role, mensaje_inicial=request.mensaje_inicial),
         viaje=RoadmapViaje(id=trip.id, origen=trip.origen, destino=trip.destino, fecha_salida=trip.fecha, estado=trip.estado, cupos_totales=trip.cupos_totales, cupos_ocupados=trip.cupos_totales-trip.cupos_disponibles, ruta_codificada=trip.ruta_codificada),
-        conductor=RoadmapPersona(id=trip.creador.id, nombre=trip.creador.nombre), pasajero_actual=RoadmapPersona(id=request.pasajero.id, nombre=request.pasajero.nombre),
-        vehiculo=RoadmapVehiculo(id=trip.vehiculo.id, marca=trip.vehiculo.marca, modelo=trip.vehiculo.modelo, color=trip.vehiculo.color, matricula=trip.vehiculo.matricula) if trip.vehiculo else None,
+        conductor=RoadmapPersona(id=trip.creador.id, nombre=trip.creador.nombre, imagen_url=trip.creador.imagen_url), pasajero_actual=RoadmapPersona(id=request.pasajero.id, nombre=request.pasajero.nombre, imagen_url=request.pasajero.imagen_url),
+        vehiculo=RoadmapVehiculo(id=trip.vehiculo.id, marca=trip.vehiculo.marca, modelo=trip.vehiculo.modelo, color=trip.vehiculo.color, matricula=trip.vehiculo.matricula, imagen_url=trip.vehiculo.imagen_url) if trip.vehiculo else None,
         punto_encuentro=RoadmapMeetingPoint(estado=request.estado_punto_encuentro, nombre_publico="Punto de encuentro" if request.punto_encuentro_propuesto else None, zona_general=request.punto_encuentro_propuesto, latitud=float(request.punto_encuentro_latitud) if request.estado != "cancelada" and request.punto_encuentro_latitud is not None else None, longitud=float(request.punto_encuentro_longitud) if request.estado != "cancelada" and request.punto_encuentro_longitud is not None else None),
         paradas=_synthetic_stops(request),
         hoja_ruta=_derived_timeline(request, events),

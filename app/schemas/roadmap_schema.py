@@ -25,6 +25,7 @@ class RoadmapViaje(BaseModel):
 class RoadmapPersona(BaseModel):
     id: int
     nombre: str
+    imagen_url: str | None = None
 
 
 class RoadmapVehiculo(BaseModel):
@@ -33,6 +34,7 @@ class RoadmapVehiculo(BaseModel):
     modelo: str
     color: str
     matricula: str
+    imagen_url: str | None = None
 
 
 class RoadmapMeetingPoint(BaseModel):

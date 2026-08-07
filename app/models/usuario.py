@@ -8,6 +8,8 @@ class Usuario(Base):
     id = Column(Integer, primary_key=True, index=True)
     nombre = Column(String, nullable=False)
     email = Column(String, unique=True, index=True, nullable=False)
+    imagen_url = Column(String(2048), nullable=True)
+    imagen_public_id = Column(String(255), nullable=True)
     hashed_password = Column(String, nullable=False)
 
     viajes = relationship("Viaje", back_populates="creador")

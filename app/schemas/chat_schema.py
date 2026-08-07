@@ -48,6 +48,7 @@ class ConversationResponse(BaseModel):
     puede_escribir: bool
     no_leidos: int
     participante: str
+    participante_imagen_url: str | None = None
     viaje_id: int
     origen: str
     destino: str

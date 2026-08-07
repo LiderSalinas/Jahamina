@@ -58,5 +58,6 @@ class VehiculoResponse(BaseModel):
     matricula: str
     capacidad: int
     activo: bool
+    imagen_url: str | None = None
     created_at: datetime
     updated_at: datetime

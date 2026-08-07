@@ -5,6 +5,7 @@ import { useAuth } from "@/components/AuthProvider";
 import { api, ApiError } from "@/lib/api";
 import type { ChatMessage, Conversation } from "@/lib/types";
 import { ChatPanel } from "./ChatPanel";
+import { UserAvatar } from "@/components/ui/UserAvatar";
 
 export function ChatPreview({ reservationId, reservationState, tripState }: { reservationId: number; reservationState: string; tripState?: string }) {
   const { token, user } = useAuth();
@@ -31,7 +32,7 @@ export function ChatPreview({ reservationId, reservationState, tripState }: { re
   const accepted = ["aceptada", "finalizada"].includes(reservationState);
   return <>
     <div className="chat-preview-body">
-      {conversation && <div className="chat-preview-person"><span aria-hidden>{conversation.participante.slice(0, 1).toUpperCase()}</span><div><b>{conversation.participante}</b><small>{["conductor_en_camino", "conductor_en_punto"].includes(tripState ?? "") ? "En camino" : tripState === "en_curso" ? "Viaje en curso" : "Conversación disponible"}</small></div></div>}
+      {conversation && <div className="chat-preview-person"><UserAvatar name={conversation.participante} imageUrl={conversation.participante_imagen_url} size="md"/><div><b>{conversation.participante}</b><small>{["conductor_en_camino", "conductor_en_punto"].includes(tripState ?? "") ? "En camino" : tripState === "en_curso" ? "Viaje en curso" : "Conversación disponible"}</small></div></div>}
       {messages.length > 0 ? <ol className="chat-preview-messages">{messages.map((message) => <li key={message.id}><div><b>{message.tipo === "sistema" ? "Jahamina" : message.remitente_id === user?.id ? "Vos" : conversation?.participante}</b><time>{new Date(message.creado_en).toLocaleTimeString("es-PY", { hour: "2-digit", minute: "2-digit" })}</time></div><p>{message.contenido}</p></li>)}</ol> : <p className="chat-preview-empty">{unavailable && !accepted ? "El chat estará disponible cuando la reserva sea aceptada." : "No hay mensajes en esta conversación."}</p>}
       {(conversation || accepted) && <button className="button-secondary chat-preview-action" type="button" onClick={() => setOpen(true)}>Ver conversación</button>}
     </div>

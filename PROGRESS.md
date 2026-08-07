@@ -418,3 +418,9 @@ Estado: completado y validado.
 - `TripMapPreview` se conserva como fallback para recorridos sin geografía suficiente; nunca se presenta un mapa vacío por falta de datos.
 - El punto de encuentro sin ubicación adopta un único empty state breve y, cuando existe, conserva su mini mapa real.
 - Validación aprobada: ESLint, build de producción, 126 pruebas Pytest y `git diff --check`.
+
+# 2026-08-07 — Persistencia segura de public_id de imágenes
+
+- Añadidos `imagen_public_id` nullable a Usuario y Vehículo mediante la migración `20260807_0009`, sin exponerlos en schemas.
+- Cloudinary genera public IDs aleatorios bajo carpetas controladas; los endpoints guardan URL + ID y limpian recursos anteriores de forma tolerante a fallos.
+- Validación específica de MIME, firma binaria, tamaño máximo de 5 MB y formato del public ID; sin secretos ni binarios en PostgreSQL.

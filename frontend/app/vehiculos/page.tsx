@@ -8,6 +8,8 @@ import { api, ApiError } from "@/lib/api";
 import type { Vehicle } from "@/lib/types";
 import { PageContainer } from "@/components/ui/PageContainer";
 import { AsyncState, PageHeader, SurfaceCard } from "@/components/ui/AppUI";
+import { ImageUploadControl } from "@/components/media/ImageUploadControl";
+import { VehicleImage } from "@/components/trip-roadmap/VehicleImage";
 
 function vehicleError(caught: unknown): string {
   if (!(caught instanceof ApiError)) return "No pudimos completar la operación.";
@@ -28,6 +30,7 @@ export default function VehiclesPage() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [listError, setListError] = useState("");
+  const [uploadingVehicle, setUploadingVehicle] = useState<number | null>(null);
 
   const load = useCallback(async () => {
     if (!token) return;
@@ -84,6 +87,20 @@ export default function VehiclesPage() {
     catch (caught) { setError(caught instanceof ApiError ? caught.message : "Error inesperado."); }
   }
 
+  async function uploadImage(vehicle: Vehicle, file: File) {
+    if (!token) return;
+    setUploadingVehicle(vehicle.id);
+    try { const updated = await api.uploadVehicleImage(vehicle.id, file, token); setVehicles((current) => current.map((item) => item.id === updated.id ? updated : item)); }
+    finally { setUploadingVehicle(null); }
+  }
+
+  async function deleteImage(vehicle: Vehicle) {
+    if (!token) return;
+    setUploadingVehicle(vehicle.id);
+    try { const updated = await api.deleteVehicleImage(vehicle.id, token); setVehicles((current) => current.map((item) => item.id === updated.id ? updated : item)); }
+    finally { setUploadingVehicle(null); }
+  }
+
   return (
     <ProtectedRoute>
       <PageContainer className="page-stack">
@@ -101,7 +118,7 @@ export default function VehiclesPage() {
             <h2 className="section-title">Vehículos registrados</h2>
             {listError && <div className="error-message mt-4" role="alert"><span>{listError}</span><button className="button-secondary ml-3" type="button" onClick={() => void load()}>Reintentar lista</button></div>}
             {loading ? <AsyncState kind="loading" title="Cargando vehículos…"/> : vehicles.length === 0 ? <AsyncState title="Todavía no registraste vehículos" description="Agregá uno para poder publicar un viaje."/> :
-              <div className="vehicle-list">{vehicles.map((vehicle) => <SurfaceCard as="article" className="vehicle-card" key={vehicle.id}><div className="vehicle-symbol" aria-hidden>V</div><div className="vehicle-copy"><div className="vehicle-heading"><div><h3>{vehicle.marca} {vehicle.modelo}</h3><p>{vehicle.color} · {vehicle.matricula}</p></div><span className={vehicle.activo ? "badge-active" : "badge-cancelled"}>{vehicle.activo ? "Activo" : "Inactivo"}</span></div><p className="vehicle-capacity">Hasta {vehicle.capacidad} pasajeros</p>{vehicle.activo && <button className="button-secondary" onClick={() => disable(vehicle.id)} type="button">Desactivar</button>}</div></SurfaceCard>)}</div>}
+              <div className="vehicle-list">{vehicles.map((vehicle) => <SurfaceCard as="article" className="vehicle-card vehicle-photo-card" key={vehicle.id}><VehicleImage brand={vehicle.marca} model={vehicle.modelo} color={vehicle.color} registration={vehicle.matricula} imageUrl={vehicle.imagen_url}/><div className="vehicle-copy"><div className="vehicle-heading"><div><h3>{vehicle.marca} {vehicle.modelo}</h3><p>{vehicle.color} · {vehicle.matricula}</p></div><span className={vehicle.activo ? "badge-active" : "badge-cancelled"}>{vehicle.activo ? "Activo" : "Inactivo"}</span></div><p className="vehicle-capacity">Hasta {vehicle.capacidad} pasajeros</p><ImageUploadControl hasImage={Boolean(vehicle.imagen_url)} uploading={uploadingVehicle === vehicle.id} onUpload={(file) => uploadImage(vehicle, file)} onDelete={() => deleteImage(vehicle)} description="Una foto clara ayuda a que los pasajeros reconozcan tu vehículo."/>{vehicle.activo && <button className="button-secondary vehicle-disable" onClick={() => disable(vehicle.id)} type="button">Desactivar</button>}</div></SurfaceCard>)}</div>}
           </section>
         </div>
       </PageContainer>

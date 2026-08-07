@@ -97,7 +97,7 @@ async function request<T>(
   token?: string | null,
 ): Promise<T> {
   const headers = new Headers(options.headers);
-  if (options.body && !(options.body instanceof URLSearchParams)) {
+  if (options.body && !(options.body instanceof URLSearchParams) && !(options.body instanceof FormData)) {
     headers.set("Content-Type", "application/json");
   }
   if (token) headers.set("Authorization", `Bearer ${token}`);
@@ -137,6 +137,13 @@ export const api = {
   },
   me(token: string): Promise<User> {
     return request<User>("/auth/me", {}, token);
+  },
+  uploadProfileImage(file: File, token: string): Promise<User> {
+    const body = new FormData(); body.append("file", file);
+    return request<User>("/usuarios/me/imagen", { method: "POST", body }, token);
+  },
+  deleteProfileImage(token: string): Promise<User> {
+    return request<User>("/usuarios/me/imagen", { method: "DELETE" }, token);
   },
   availableTrips(token: string): Promise<Trip[]> {
     return request<Trip[]>("/viajes/disponibles", {}, token);
@@ -234,6 +241,13 @@ export const api = {
       { method: "PATCH" },
       token,
     );
+  },
+  uploadVehicleImage(id: number, file: File, token: string): Promise<Vehicle> {
+    const body = new FormData(); body.append("file", file);
+    return request<Vehicle>(`/vehiculos/${id}/imagen`, { method: "POST", body }, token);
+  },
+  deleteVehicleImage(id: number, token: string): Promise<Vehicle> {
+    return request<Vehicle>(`/vehiculos/${id}/imagen`, { method: "DELETE" }, token);
   },
   myRequests(token: string): Promise<TripRequest[]> {
     return request<TripRequest[]>("/solicitudes/mias", {}, token);

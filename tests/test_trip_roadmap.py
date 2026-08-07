@@ -3,6 +3,8 @@ from datetime import datetime, timedelta
 from typing import Any
 
 from fastapi.testclient import TestClient
+from app.models.usuario import Usuario
+from app.models.vehiculo import Vehiculo
 
 
 def _accepted(client: TestClient, auth_headers: Callable[..., dict[str, str]], create_vehicle: Callable[..., dict[str, Any]], suffix: str):
@@ -45,6 +47,19 @@ def test_both_participants_get_consolidated_roadmap_and_outsider_is_hidden(clien
         assert "email" not in response.text
     assert client.get(f"/reservas/{request['id']}/hoja-ruta", headers=outsider).status_code == 404
     assert client.get("/reservas/999999/hoja-ruta", headers=driver).status_code == 404
+
+
+def test_roadmap_exposes_optional_images(client, db_session, auth_headers, create_vehicle):
+    driver, passenger, trip, request = _accepted(client, auth_headers, create_vehicle, "media")
+    driver_id = client.get("/auth/me", headers=driver).json()["id"]
+    user = db_session.get(Usuario, driver_id)
+    vehicle = db_session.get(Vehiculo, trip["vehiculo_id"])
+    user.imagen_url = "https://res.cloudinary.com/test/image/upload/profile.png"
+    vehicle.imagen_url = "https://res.cloudinary.com/test/image/upload/vehicle.png"
+    db_session.flush()
+    roadmap = client.get(f"/reservas/{request['id']}/hoja-ruta", headers=passenger).json()
+    assert roadmap["conductor"]["imagen_url"].endswith("profile.png")
+    assert roadmap["vehiculo"]["imagen_url"].endswith("vehicle.png")
 
 
 def test_roadmap_derives_meeting_point_and_cancelled_privacy(client, auth_headers, create_vehicle):

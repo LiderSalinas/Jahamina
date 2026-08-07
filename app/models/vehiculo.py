@@ -39,6 +39,8 @@ class Vehiculo(Base):
         nullable=False,
     )
     capacidad: Mapped[int] = mapped_column(Integer, nullable=False)
+    imagen_url: Mapped[str | None] = mapped_column(String(2048), nullable=True)
+    imagen_public_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
     activo: Mapped[bool] = mapped_column(
         Boolean,
         default=True,

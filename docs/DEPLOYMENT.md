@@ -153,6 +153,12 @@ El logout intenta revocar solo la suscripción del navegador actual y también l
 
 El Service Worker no cachea respuestas autenticadas, tokens, chat, perfil ni reservas. Solo atiende `push` y `notificationclick`, y limita la navegación a rutas internas conocidas.
 
+## Imágenes en Cloudinary
+
+Configure únicamente en Render `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY` y `CLOUDINARY_API_SECRET`. El secreto nunca pertenece a Vercel ni a una variable `NEXT_PUBLIC_*`. `MEDIA_MAX_UPLOAD_BYTES` permite ajustar el límite, cuyo valor recomendado es `5242880` (5 MB).
+
+Los uploads se firman en FastAPI y requieren JWT. No habilite presets unsigned. Jahamina genera identificadores aleatorios controlados bajo `jahamina/users/{id}` y `jahamina/vehicles/{id}`; PostgreSQL conserva la URL HTTPS y el `public_id` privado para reemplazar o eliminar el recurso correcto. El `public_id` nunca se devuelve al frontend ni se deriva del nombre enviado por el usuario. Antes de desplegar el backend ejecute `alembic upgrade head` para añadir las columnas opcionales.
+
 Para pruebas móviles use un túnel HTTPS confiable o certificados locales
 administrados fuera del repositorio. Verifique `/manifest.webmanifest`,
 `/sw.js`, active las notificaciones desde la campana y use el endpoint de

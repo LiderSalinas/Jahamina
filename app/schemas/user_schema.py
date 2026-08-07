@@ -38,6 +38,7 @@ class UsuarioResponse(BaseModel):
     id: int
     nombre: str
     email: EmailStr
+    imagen_url: str | None = None
 
 # ✅ Token de respuesta JWT
 class TokenResponse(BaseModel):
