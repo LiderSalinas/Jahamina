@@ -381,3 +381,12 @@ Estado: completado y validado.
 - La ruta gana presencia, marcadores diferenciados, parada seleccionada y salida programada; si no existen paradas, se mantiene un fallback visual sin inventar distancia ni duración.
 - Hoja de ruta, encuentro, preview de chat e información usan superficies, espaciado y orden responsive consistentes con Jahamina.
 - Validación final aprobada: ESLint, build de producción de Next.js, 126 pruebas Pytest y `git diff --check`.
+
+# 2026-08-07 — Tercera pasada del viaje compartido
+
+- El hero mantiene estructura y acciones, pero cambia el bloque verde sólido por una superficie clara crema/verde con acento lateral y headline más contenido.
+- Conductor y vehículo ganan jerarquía: avatar opcional seguro, iniciales refinadas y `VehicleImage` con prioridad foto real, catálogo opcional e ilustración automotriz local.
+- La ilustración fallback usa una vista en perspectiva, volumen, cristales, luces y ruedas detalladas; los datos del vehículo quedan en una franja blanca independiente.
+- Métricas y próxima acción tienen mayor aire, iconografía discreta y un CTA naranja menos dominante.
+- La hoja de ruta aumenta su ritmo vertical, suaviza el paso actual y reduce el peso visual del contador.
+- Validación aprobada: ESLint, build de producción de Next.js, 126 pruebas Pytest y `git diff --check`.

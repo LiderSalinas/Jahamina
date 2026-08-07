@@ -157,6 +157,7 @@ export function RealTripRoadmap({ reservationId, token, meetingPoint, chat }: { 
   const stage = visibleStatus(data);
   const participant = data.reserva.rol_actual === "conductor" ? data.pasajero_actual : data.conductor;
   const driverInitials = data.conductor.nombre.split(" ").slice(0, 2).map((part) => part[0]).join("").toUpperCase();
+  const driverImage = data.conductor.imagen_url && (/^https?:\/\//i.test(data.conductor.imagen_url) || data.conductor.imagen_url.startsWith("/")) ? data.conductor.imagen_url : null;
   const departure = new Date(data.viaje.fecha_salida);
   const context = { reservationState: data.reserva.estado, tripState: data.viaje.estado };
   const runAction = async () => {
@@ -175,7 +176,7 @@ export function RealTripRoadmap({ reservationId, token, meetingPoint, chat }: { 
 
     <section className="status-surface" aria-labelledby="reservation-status">
       <div className="status-copy"><p className="ui-eyebrow">Estado actual</p><h2 id="reservation-status">{stage}</h2><p>{statusDescription(data, stage)}</p></div>
-      <div className="status-people"><div className="driver-summary"><span className="participant-avatar" aria-hidden>{driverInitials}</span><div><small>Conductor</small><b>{data.conductor.nombre}</b><span><i aria-hidden>★</i> Conductor de Jahamina</span></div></div>{data.vehiculo ? <VehicleImage brand={data.vehiculo.marca} model={data.vehiculo.modelo} color={data.vehiculo.color} registration={data.vehiculo.matricula} imageUrl={data.vehiculo.imagen_url}/> : <div className="vehicle-unavailable"><span aria-hidden>◇</span><div><small>Vehículo</small><b>Información no disponible</b></div></div>}</div>
+      <div className="status-people"><div className="driver-summary"><span className={`participant-avatar ${driverImage ? "has-photo" : ""}`} aria-hidden style={driverImage ? { backgroundImage: `url(${JSON.stringify(driverImage).slice(1, -1)})` } : undefined}>{driverImage ? "" : driverInitials}</span><div><small>Tu conductor</small><b>{data.conductor.nombre}</b><span>Conductor de Jahamina</span></div></div>{data.vehiculo ? <VehicleImage brand={data.vehiculo.marca} model={data.vehiculo.modelo} color={data.vehiculo.color} registration={data.vehiculo.matricula} imageUrl={data.vehiculo.imagen_url} catalogImageUrl={data.vehiculo.catalogo_imagen_url}/> : <div className="vehicle-unavailable"><span aria-hidden>◇</span><div><small>Vehículo</small><b>Información no disponible</b></div></div>}</div>
       <dl className="trip-facts"><div><dt>Salida programada</dt><dd>{departure.toLocaleTimeString("es-PY", { hour: "2-digit", minute: "2-digit" })}</dd></div><div><dt>Ocupación</dt><dd>{data.ocupacion.ocupados} de {data.ocupacion.totales} lugares</dd></div><div><dt>Tu lugar</dt><dd>{data.reserva.rol_actual === "conductor" ? "Conductor" : "Pasajero"}<small>Viajás con {participant.nombre}</small></dd></div></dl>
       {action.enabled && !["finalizado", "cancelado"].includes(data.viaje.estado) && <div className="context-action"><div><small>Próxima acción</small><b>{actionLabel}</b></div><button className="button-primary" type="button" disabled={busy} onClick={() => void runAction()}>{busy ? "Actualizando…" : actionLabel}</button></div>}
     </section>

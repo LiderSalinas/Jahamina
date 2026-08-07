@@ -4,20 +4,27 @@ type VehicleImageProps = {
   color?: string | null;
   registration?: string | null;
   imageUrl?: string | null;
+  catalogImageUrl?: string | null;
 };
 
-export function VehicleImage({ brand, model, color, registration, imageUrl }: VehicleImageProps) {
-  const label = `${brand} ${model}`.trim();
-  const safeImageUrl = imageUrl && (/^https?:\/\//i.test(imageUrl) || imageUrl.startsWith("/")) ? imageUrl : null;
+function safeVisualUrl(value?: string | null) {
+  return value && (/^https?:\/\//i.test(value) || value.startsWith("/")) ? value : null;
+}
 
-  return <figure className={`vehicle-image ${safeImageUrl ? "has-image" : "is-fallback"}`} aria-label={label || "Vehículo del viaje"}>
-    {safeImageUrl ? <span className="vehicle-image-photo" role="img" aria-label={label} style={{ backgroundImage: `url(${JSON.stringify(safeImageUrl).slice(1, -1)})` }}/> : <svg viewBox="0 0 360 170" role="img" aria-label={`Vista ilustrada de ${label}`}>
-      <path className="vehicle-shadow" d="M55 132h254"/>
-      <path className="vehicle-body" d="M51 108c5-18 19-29 42-33l38-7 28-34h83l38 37 30 8c14 4 23 14 23 29v18H45v-8c0-4 2-8 6-10Z"/>
-      <path className="vehicle-window" d="m151 68 23-27h60l29 30-112-3Z"/>
-      <path className="vehicle-detail" d="M54 101h55m178 0h38"/>
-      <circle className="vehicle-wheel" cx="104" cy="126" r="22"/><circle className="vehicle-hub" cx="104" cy="126" r="9"/>
-      <circle className="vehicle-wheel" cx="274" cy="126" r="22"/><circle className="vehicle-hub" cx="274" cy="126" r="9"/>
+export function VehicleImage({ brand, model, color, registration, imageUrl, catalogImageUrl }: VehicleImageProps) {
+  const label = `${brand} ${model}`.trim();
+  const resolvedImageUrl = safeVisualUrl(imageUrl) ?? safeVisualUrl(catalogImageUrl);
+
+  return <figure className={`vehicle-image ${resolvedImageUrl ? "has-image" : "is-fallback"}`} aria-label={label || "Vehículo del viaje"}>
+    {resolvedImageUrl ? <span className="vehicle-image-photo" role="img" aria-label={label} style={{ backgroundImage: `url(${JSON.stringify(resolvedImageUrl).slice(1, -1)})` }}/> : <svg viewBox="0 0 440 210" role="img" aria-label={`Ilustración de ${label}`}>
+      <ellipse className="vehicle-shadow" cx="228" cy="174" rx="158" ry="16"/>
+      <path className="vehicle-body" d="M45 139c6-28 29-43 68-49l54-9 35-43h103l55 47 34 13c14 6 22 18 20 35l-3 24-352 5-17-9 3-14Z"/>
+      <path className="vehicle-highlight" d="M69 126c63-13 195-20 322-9M95 103l75-15 37-41h91l44 39"/>
+      <path className="vehicle-window" d="m181 80 31-35h38v38l-69-3Zm76 3V45h38l40 39-78-1Z"/>
+      <path className="vehicle-grille" d="m364 126 45 1-2 19-49 1"/>
+      <path className="vehicle-light" d="m356 96 34 11-37 8Z"/>
+      <circle className="vehicle-wheel" cx="119" cy="157" r="29"/><circle className="vehicle-rim" cx="119" cy="157" r="17"/><circle className="vehicle-hub" cx="119" cy="157" r="6"/>
+      <circle className="vehicle-wheel" cx="339" cy="157" r="29"/><circle className="vehicle-rim" cx="339" cy="157" r="17"/><circle className="vehicle-hub" cx="339" cy="157" r="6"/>
     </svg>}
     <figcaption><small>Vehículo asignado</small><b>{label}</b>{(color || registration) && <span>{[color, registration].filter(Boolean).join(" · ")}</span>}</figcaption>
   </figure>;
