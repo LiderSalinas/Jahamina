@@ -372,3 +372,12 @@ Estado: completado y validado.
 - Restauración, unsubscribe, Service Worker, logout y registro por dispositivo permanecen sin cambios funcionales.
 - Contratos Push ampliados y contratos visuales previamente desactualizados alineados con el diseño vigente.
 - Validación: 126 pruebas Pytest, ESLint, build de producción de Next.js y `git diff --check` aprobados.
+
+# 2026-08-07 — Panel premium de viaje compartido
+
+- La reserva aceptada conserva su carga real, WebSocket, permisos, acciones de etapa, punto de encuentro y chat; el cambio es de presentación y composición.
+- El estado actual pasa a ser un hero verde con conductor, datos reales del vehículo, ocupación, salida y próxima acción claramente jerarquizados.
+- Se incorporó `VehicleImage`, preparado para una URL pública segura y con una ilustración SVG local cuando el backend todavía no entrega fotografía.
+- La ruta gana presencia, marcadores diferenciados, parada seleccionada y salida programada; si no existen paradas, se mantiene un fallback visual sin inventar distancia ni duración.
+- Hoja de ruta, encuentro, preview de chat e información usan superficies, espaciado y orden responsive consistentes con Jahamina.
+- Validación final aprobada: ESLint, build de producción de Next.js, 126 pruebas Pytest y `git diff --check`.

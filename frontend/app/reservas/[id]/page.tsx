@@ -13,6 +13,6 @@ export default function ReservationDetailPage() {
   const params = useParams<{ id: string }>();
   const reservationId = Number(params.id);
   return <ProtectedRoute><PageContainer className="reservation-page">
-    {token && Number.isInteger(reservationId) && <RealTripRoadmap reservationId={reservationId} token={token} meetingPoint={({ reservationState, tripState }) => <MeetingPointSelector reservationId={reservationId} reservationState={reservationState} tripState={tripState}/>} chat={({ reservationState }) => <ChatPreview reservationId={reservationId} reservationState={reservationState}/>}/>}
+    {token && Number.isInteger(reservationId) && <RealTripRoadmap reservationId={reservationId} token={token} meetingPoint={({ reservationState, tripState }) => <MeetingPointSelector reservationId={reservationId} reservationState={reservationState} tripState={tripState}/>} chat={({ reservationState, tripState }) => <ChatPreview reservationId={reservationId} reservationState={reservationState} tripState={tripState}/>}/>}
   </PageContainer></ProtectedRoute>;
 }

@@ -167,7 +167,7 @@ export interface Roadmap {
   reserva:{id:number; estado:string; rol_actual:"conductor"|"pasajero"; mensaje_inicial:string|null};
   viaje:{id:number; origen:string; destino:string; fecha_salida:string; estado:string; cupos_totales:number; cupos_ocupados:number; ruta_codificada:string|null};
   conductor:{id:number; nombre:string}; pasajero_actual:{id:number; nombre:string};
-  vehiculo:{id:number; marca:string; modelo:string; color:string; matricula:string}|null;
+  vehiculo:{id:number; marca:string; modelo:string; color:string; matricula:string; imagen_url?:string|null}|null;
   punto_encuentro:{estado:string; nombre_publico:string|null; zona_general:string|null; latitud:number|null; longitud:number|null};
   paradas:RoadmapStopReal[]; eventos:RoadmapEventReal[];
   hoja_ruta:{id:string; titulo:string; descripcion:string; estado:"completado"|"actual"|"pendiente"|"cancelado"; timestamp:string|null; orden:number}[];

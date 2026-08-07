@@ -7,6 +7,7 @@ import { api, ApiError } from "@/lib/api";
 import type { RelatedReservation, Roadmap, Trip, Vehicle } from "@/lib/types";
 import { TripMapPreview } from "./TripMapPreview";
 import { TripTimeline } from "./TripTimeline";
+import { VehicleImage } from "./VehicleImage";
 import type { RoadmapStop, TimelineStep } from "./types";
 
 const visibleSteps = ["Reserva confirmada", "Punto de encuentro", "Conductor en camino", "Viaje en curso", "Viaje finalizado"];
@@ -155,7 +156,7 @@ export function RealTripRoadmap({ reservationId, token, meetingPoint, chat }: { 
   const actionLabel = action.id === "chat" ? "Abrir chat" : action.label;
   const stage = visibleStatus(data);
   const participant = data.reserva.rol_actual === "conductor" ? data.pasajero_actual : data.conductor;
-  const initials = participant.nombre.split(" ").slice(0, 2).map((part) => part[0]).join("").toUpperCase();
+  const driverInitials = data.conductor.nombre.split(" ").slice(0, 2).map((part) => part[0]).join("").toUpperCase();
   const departure = new Date(data.viaje.fecha_salida);
   const context = { reservationState: data.reserva.estado, tripState: data.viaje.estado };
   const runAction = async () => {
@@ -174,13 +175,13 @@ export function RealTripRoadmap({ reservationId, token, meetingPoint, chat }: { 
 
     <section className="status-surface" aria-labelledby="reservation-status">
       <div className="status-copy"><p className="ui-eyebrow">Estado actual</p><h2 id="reservation-status">{stage}</h2><p>{statusDescription(data, stage)}</p></div>
-      <div className="status-people"><div className="participant-summary"><span className="participant-avatar" aria-hidden>{initials}</span><div><small>{data.reserva.rol_actual === "conductor" ? "Pasajero" : "Conductor"}</small><b>{participant.nombre}</b></div></div>{data.vehiculo && <div className="vehicle-summary"><span className="vehicle-glyph" aria-hidden><i/><i/></span><div><small>Vehículo</small><b>{data.vehiculo.marca} {data.vehiculo.modelo}</b><span>{data.vehiculo.color}{data.vehiculo.matricula ? ` · ${data.vehiculo.matricula}` : ""}</span></div></div>}</div>
-      <dl className="trip-facts"><div><dt>Ocupación</dt><dd>{data.ocupacion.ocupados} de {data.ocupacion.totales} lugares</dd></div><div><dt>Participás como</dt><dd>{data.reserva.rol_actual}</dd></div></dl>
+      <div className="status-people"><div className="driver-summary"><span className="participant-avatar" aria-hidden>{driverInitials}</span><div><small>Conductor</small><b>{data.conductor.nombre}</b><span><i aria-hidden>★</i> Conductor de Jahamina</span></div></div>{data.vehiculo ? <VehicleImage brand={data.vehiculo.marca} model={data.vehiculo.modelo} color={data.vehiculo.color} registration={data.vehiculo.matricula} imageUrl={data.vehiculo.imagen_url}/> : <div className="vehicle-unavailable"><span aria-hidden>◇</span><div><small>Vehículo</small><b>Información no disponible</b></div></div>}</div>
+      <dl className="trip-facts"><div><dt>Salida programada</dt><dd>{departure.toLocaleTimeString("es-PY", { hour: "2-digit", minute: "2-digit" })}</dd></div><div><dt>Ocupación</dt><dd>{data.ocupacion.ocupados} de {data.ocupacion.totales} lugares</dd></div><div><dt>Tu lugar</dt><dd>{data.reserva.rol_actual === "conductor" ? "Conductor" : "Pasajero"}<small>Viajás con {participant.nombre}</small></dd></div></dl>
       {action.enabled && !["finalizado", "cancelado"].includes(data.viaje.estado) && <div className="context-action"><div><small>Próxima acción</small><b>{actionLabel}</b></div><button className="button-primary" type="button" disabled={busy} onClick={() => void runAction()}>{busy ? "Actualizando…" : actionLabel}</button></div>}
     </section>
 
     <div className="timeline-area"><TripTimeline steps={timeline} selectedStop={selected} onSelect={setSelected}/></div>
-    <section className="route-area" aria-label="Tu ruta">{stops.length > 0 ? <TripMapPreview stops={stops} location="sin_ubicacion" selectedStop={Math.min(selected, stops.length - 1)} onSelect={setSelected} title={`${data.viaje.origen} → ${data.viaje.destino}`} origin={data.viaje.origen} destination={data.viaje.destino}/> : <div className="surface-card route-empty"><p className="ui-eyebrow">Tu ruta</p><h2>{data.viaje.origen} → {data.viaje.destino}</h2><div className="schematic-route" aria-label={`Recorrido desde ${data.viaje.origen} hasta ${data.viaje.destino}`}><span/><div><b>{data.viaje.origen}</b><i/><b>{data.viaje.destino}</b></div><span/></div><p>El recorrido detallado todavía no está disponible.</p></div>}</section>
+    <section className="route-area" aria-label="Tu ruta">{stops.length > 0 ? <TripMapPreview stops={stops} location="sin_ubicacion" selectedStop={Math.min(selected, stops.length - 1)} onSelect={setSelected} title={`${data.viaje.origen} → ${data.viaje.destino}`} origin={data.viaje.origen} destination={data.viaje.destino} departure={departure.toLocaleTimeString("es-PY", { hour: "2-digit", minute: "2-digit" })}/> : <div className="surface-card route-empty"><p className="ui-eyebrow">Tu ruta</p><h2>{data.viaje.origen} → {data.viaje.destino}</h2><div className="schematic-route" aria-label={`Recorrido desde ${data.viaje.origen} hasta ${data.viaje.destino}`}><span/><div><b>{data.viaje.origen}</b><i/><b>{data.viaje.destino}</b></div><span/></div><div className="route-fallback-meta"><span><small>Salida programada</small><b>{departure.toLocaleTimeString("es-PY", { hour: "2-digit", minute: "2-digit" })}</b></span><p>El trazado detallado aparecerá cuando esté disponible.</p></div></div>}</section>
     <section className="meeting-area" id="meeting-point">{meetingPoint(context)}</section>
     <section className="chat-area" id="chat-reserva"><div className="section-intro"><div><p className="ui-eyebrow">Conversación</p><h2>Chat del viaje</h2></div>{data.permisos.puede_ver_chat && <a href="#chat-reserva" className="text-link">Ver conversación</a>}</div>{chat(context)}</section>
     <section className="trip-info-area" aria-labelledby="trip-info-title"><div className="section-intro"><div><p className="ui-eyebrow">Resumen</p><h2 id="trip-info-title">Información del viaje</h2></div></div><dl><div><dt>Fecha</dt><dd>{departure.toLocaleDateString("es-PY", { dateStyle: "medium" })}</dd></div><div><dt>Hora</dt><dd>{departure.toLocaleTimeString("es-PY", { hour: "2-digit", minute: "2-digit" })}</dd></div><div><dt>Estado</dt><dd>{stage}</dd></div><div><dt>Ocupación</dt><dd>{data.ocupacion.ocupados} de {data.ocupacion.totales}</dd></div><div><dt>Rol</dt><dd>{data.reserva.rol_actual}</dd></div>{data.vehiculo && <div><dt>Vehículo</dt><dd>{data.vehiculo.marca} {data.vehiculo.modelo}</dd></div>}<div><dt>Origen</dt><dd>{data.viaje.origen}</dd></div><div><dt>Destino</dt><dd>{data.viaje.destino}</dd></div></dl></section>
