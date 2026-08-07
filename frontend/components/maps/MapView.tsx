@@ -6,7 +6,7 @@ import { MapErrorState } from "./MapErrorState";
 import { MapLoadingState } from "./MapLoadingState";
 import { isWithinParaguay, PARAGUAY_BOUNDS, PARAGUAY_CENTER } from "@/lib/paraguayGeo";
 
-const DEVELOPMENT_STYLE_URL = "https://tiles.openfreemap.org/styles/liberty";
+const DEFAULT_STYLE_URL = "https://tiles.openfreemap.org/styles/liberty";
 const MAP_ERROR_MESSAGE = "No se pudo cargar el mapa. El punto de encuentro continúa disponible.";
 
 export interface MapMarker extends GeoPoint {
@@ -46,9 +46,7 @@ function configuredStyleUrl(): { url: string | null; usingFallback: boolean } {
     }
     return { url: null, usingFallback: false };
   }
-  return process.env.NODE_ENV === "development"
-    ? { url: DEVELOPMENT_STYLE_URL, usingFallback: true }
-    : { url: null, usingFallback: false };
+  return { url: DEFAULT_STYLE_URL, usingFallback: true };
 }
 
 export function MapView({ markers, route, onMarkerMove, onInvalidPoint, className = "" }: MapViewProps) {
@@ -56,6 +54,7 @@ export function MapView({ markers, route, onMarkerMove, onInvalidPoint, classNam
   const mapRef = useRef<import("maplibre-gl").Map | null>(null);
   const maplibreRef = useRef<typeof import("maplibre-gl") | null>(null);
   const markerInstances = useRef<import("maplibre-gl").Marker[]>([]);
+  const hasLoadedRef = useRef(false);
   const callbackRef = useRef(onMarkerMove);
   const invalidCallbackRef = useRef(onInvalidPoint);
   const style = useMemo(() => configuredStyleUrl(), []);
@@ -113,6 +112,7 @@ export function MapView({ markers, route, onMarkerMove, onInvalidPoint, classNam
       map.addControl(new maplibre.NavigationControl({ showCompass: false }), "top-right");
       map.on("load", () => {
         if (disposed) return;
+        hasLoadedRef.current = true;
         setLoaded(true);
         setError("");
         map.resize();
@@ -120,8 +120,10 @@ export function MapView({ markers, route, onMarkerMove, onInvalidPoint, classNam
       });
       map.on("error", (event) => {
         if (disposed) return;
-        setLoaded(false);
-        setError(MAP_ERROR_MESSAGE);
+        if (!hasLoadedRef.current) {
+          setLoaded(false);
+          setError(MAP_ERROR_MESSAGE);
+        }
         if (process.env.NODE_ENV === "development") {
           console.warn("Mapa: falló la carga del estilo o de uno de sus recursos.", event.error?.name ?? "MapError");
         }
@@ -134,6 +136,7 @@ export function MapView({ markers, route, onMarkerMove, onInvalidPoint, classNam
       mapRef.current?.remove();
       mapRef.current = null;
       maplibreRef.current = null;
+      hasLoadedRef.current = false;
     };
     // Map construction depends only on the validated style, preventing duplicate Strict Mode instances.
   }, [style.url, style.usingFallback]);
