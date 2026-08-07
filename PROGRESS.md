@@ -390,3 +390,9 @@ Estado: completado y validado.
 - Métricas y próxima acción tienen mayor aire, iconografía discreta y un CTA naranja menos dominante.
 - La hoja de ruta aumenta su ritmo vertical, suaviza el paso actual y reduce el peso visual del contador.
 - Validación aprobada: ESLint, build de producción de Next.js, 126 pruebas Pytest y `git diff --check`.
+
+# 2026-08-07 — Cierre visual puntual del dashboard
+
+- Reequilibrado el hero para 1366×768, ampliando el vehículo y reduciendo altura/peso de CTA y timeline sin alterar la estructura.
+- Añadida una ruta compacta dentro del estado y refinada la ilustración 3/4 con volumen, cristales, luces, detalles de carrocería y ruedas.
+- Validación aprobada: ESLint, build de producción, 126 pruebas Pytest y `git diff --check`.
