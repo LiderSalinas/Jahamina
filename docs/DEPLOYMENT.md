@@ -133,6 +133,26 @@ solo en el entorno del backend. Nunca use una variable `NEXT_PUBLIC_*` para la
 clave privada. Producción necesita HTTPS para frontend y API, WSS para sockets
 y orígenes explícitos en CORS.
 
+## WEB PUSH PRODUCTION
+
+1. Genere una sola vez el par VAPID, desde la raíz del repositorio, con `python scripts/generate_vapid.py`. El script imprime las claves localmente y no crea archivos. Como alternativa, use `npx web-push generate-vapid-keys --json` en un entorno confiable.
+2. Copie inmediatamente la clave pública y la privada a un gestor de secretos. No las coloque en `.env.example`, tickets, capturas ni logs.
+3. En Render configure `WEB_PUSH_VAPID_PUBLIC_KEY`, `WEB_PUSH_VAPID_PRIVATE_KEY`, `WEB_PUSH_SUBJECT=mailto:contacto@su-dominio`, `WEB_PUSH_ENABLED=true` y temporalmente `WEB_PUSH_TEST_ENABLED=true`.
+4. En Vercel configure `NEXT_PUBLIC_VAPID_PUBLIC_KEY` con exactamente la misma clave pública. Esta variable es visible en el navegador; nunca use aquí la clave privada.
+5. Vuelva a desplegar el backend de Render y compruebe que `GET /notificaciones/configuracion-push` devuelve `enabled=true` sin revelar la clave privada.
+6. Vuelva a desplegar el frontend de Vercel para incorporar la clave pública en el build.
+7. En Android Chrome abra Jahamina por HTTPS, inicie sesión y pulse **Activar notificaciones**. El permiso nunca se solicita automáticamente.
+8. Verifique que `POST /notificaciones/suscripciones` responde 201 y que el dispositivo aparece en el perfil sin exponer endpoint ni claves.
+9. Autenticado como ese usuario, ejecute `POST /notificaciones/prueba`; la respuesta indica `subscriptions_notified`.
+10. Deje Jahamina en segundo plano y repita la prueba.
+11. Cierre la pestaña o la PWA y genere un evento relevante o repita la prueba; la instalación PWA no es obligatoria en Chrome Android.
+12. Pulse la notificación y confirme que enfoca o abre Jahamina únicamente en `/reservas`, `/viajes` o `/mis-viajes` y sus rutas hijas.
+13. Al terminar, configure `WEB_PUSH_TEST_ENABLED=false` en Render y vuelva a desplegar. Mantenga `WEB_PUSH_ENABLED=true`.
+
+El logout intenta revocar solo la suscripción del navegador actual y también llama a `PushSubscription.unsubscribe()`. Si el navegador cambia de usuario y conserva una suscripción ajena, el frontend la descarta y crea otra; el backend nunca permite modificar la suscripción de otro usuario. Fallos 404/410 del servicio Push desactivan el dispositivo. Los fallos Push no revierten la notificación interna ni la acción que la originó.
+
+El Service Worker no cachea respuestas autenticadas, tokens, chat, perfil ni reservas. Solo atiende `push` y `notificationclick`, y limita la navegación a rutas internas conocidas.
+
 Para pruebas móviles use un túnel HTTPS confiable o certificados locales
 administrados fuera del repositorio. Verifique `/manifest.webmanifest`,
 `/sw.js`, active las notificaciones desde la campana y use el endpoint de

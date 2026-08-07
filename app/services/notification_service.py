@@ -1,5 +1,6 @@
 import asyncio
 import json
+import logging
 from datetime import datetime, timezone
 from urllib.parse import urlparse
 
@@ -8,18 +9,22 @@ from sqlalchemy import func, select, update
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session
 
-from app.core.redis import publish_notification_event
+from app.core.redis import is_chat_active, publish_notification_event
 from app.core.settings import settings
 from app.models.notificacion import Notificacion, SuscripcionPush
 from app.schemas.notification_schema import NotificationResponse, PushPreferences, PushSubscriptionCreate
 
 MESSAGE_TYPES = {"mensaje_nuevo"}
 RESERVATION_TYPES = {"solicitud_nueva", "solicitud_aceptada", "solicitud_rechazada", "punto_confirmado"}
+ALLOWED_DESTINATIONS = {"/reservas", "/viajes", "/mis-viajes"}
+logger = logging.getLogger(__name__)
 
 
 def validate_internal_url(value: str) -> str:
     parsed = urlparse(value)
-    if not value.startswith("/") or value.startswith("//") or parsed.scheme or parsed.netloc:
+    path = parsed.path.rstrip("/") or "/"
+    allowed = any(path == prefix or path.startswith(f"{prefix}/") for prefix in ALLOWED_DESTINATIONS)
+    if not value.startswith("/") or value.startswith("//") or parsed.scheme or parsed.netloc or not allowed:
         raise HTTPException(status_code=422, detail="La URL de destino debe ser interna")
     return value
 
@@ -81,6 +86,15 @@ def revoke_subscription(db: Session, subscription_id: int, user_id: int) -> None
     db.commit()
 
 
+def revoke_subscription_by_endpoint(db: Session, endpoint: str, user_id: int) -> None:
+    item = db.scalar(select(SuscripcionPush).where(SuscripcionPush.endpoint == endpoint, SuscripcionPush.usuario_id == user_id))
+    if not item:
+        raise HTTPException(status_code=404, detail="Suscripción no encontrada")
+    item.activa = False
+    item.revocada_en = datetime.now(timezone.utc)
+    db.commit()
+
+
 def update_preferences(db: Session, subscription_id: int, user_id: int, data: PushPreferences) -> SuscripcionPush:
     item = db.scalar(select(SuscripcionPush).where(SuscripcionPush.id == subscription_id, SuscripcionPush.usuario_id == user_id, SuscripcionPush.activa.is_(True)))
     if not item:
@@ -108,7 +122,15 @@ def _send_web_push(subscription: SuscripcionPush, notification: Notificacion) ->
     try:
         webpush(
             subscription_info={"endpoint": subscription.endpoint, "keys": {"p256dh": subscription.p256dh, "auth": subscription.auth}},
-            data=json.dumps({"title": notification.titulo, "body": notification.cuerpo, "url": notification.url_destino, "tag": notification.clave_idempotencia}),
+            data=json.dumps({
+                "title": notification.titulo,
+                "body": notification.cuerpo,
+                "icon": "/icons/jahamina.svg",
+                "badge": "/icons/jahamina.svg",
+                "tag": notification.clave_idempotencia,
+                "url": notification.url_destino,
+                "data": {"url": notification.url_destino},
+            }),
             vapid_private_key=settings.web_push_vapid_private_key,
             vapid_claims={"sub": settings.web_push_subject},
             timeout=8,
@@ -120,32 +142,45 @@ def _send_web_push(subscription: SuscripcionPush, notification: Notificacion) ->
         raise
 
 
-async def _dispatch_push(db: Session, notification: Notificacion) -> None:
-    if not settings.web_push_enabled or not settings.web_push_vapid_private_key:
-        return
+async def _dispatch_push(db: Session, notification: Notificacion) -> int:
+    if not settings.web_push_enabled or not settings.web_push_vapid_private_key or not settings.web_push_vapid_public_key:
+        return 0
+    if notification.tipo == "mensaje_nuevo" and notification.conversacion_id and await is_chat_active(notification.usuario_id, notification.conversacion_id):
+        return 0
     subscriptions = list(db.scalars(select(SuscripcionPush).where(SuscripcionPush.usuario_id == notification.usuario_id, SuscripcionPush.activa.is_(True))))
+    delivered = 0
     for subscription in subscriptions:
         if not _category_enabled(subscription, notification.tipo):
             continue
         try:
             await asyncio.to_thread(_send_web_push, subscription, notification)
             subscription.ultima_utilizacion_en = datetime.now(timezone.utc)
+            delivered += 1
         except LookupError:
             subscription.activa = False
             subscription.revocada_en = datetime.now(timezone.utc)
-        except Exception:
+        except Exception as error:
+            status_code = getattr(getattr(error, "response", None), "status_code", None)
+            if status_code in {401, 403}:
+                logger.error(
+                    "Web Push rechazó las credenciales VAPID (status=%s); la suscripción se conserva activa",
+                    status_code,
+                )
+            else:
+                logger.warning("Web Push falló para una suscripción (status=%s, error=%s)", status_code, type(error).__name__)
             continue
     try:
         db.commit()
     except SQLAlchemyError:
         db.rollback()
+    return delivered
 
 
 async def notify(
     db: Session, *, user_id: int, actor_id: int | None, notification_type: str,
     title: str, body: str, idempotency_key: str, destination_url: str,
     reservation_id: int | None = None, trip_id: int | None = None,
-    conversation_id: int | None = None,
+    conversation_id: int | None = None, dispatch_push: bool = True,
 ) -> Notificacion | None:
     if actor_id == user_id:
         return None
@@ -171,7 +206,8 @@ async def notify(
     except Exception:
         pass
     try:
-        await _dispatch_push(db, item)
+        if dispatch_push:
+            await _dispatch_push(db, item)
     except Exception:
         # La acción principal y la notificación interna ya fueron confirmadas.
         # Web Push es un canal complementario y nunca debe revertirlas.

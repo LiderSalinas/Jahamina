@@ -11,6 +11,7 @@ import {
 } from "react";
 
 import { api, ApiError } from "@/lib/api";
+import { deactivatePush } from "@/lib/push-notifications";
 import type { User } from "@/lib/types";
 
 const TOKEN_KEY = "jahamina_token";
@@ -75,9 +76,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   );
 
   const logout = useCallback(() => {
+    if (token) void deactivatePush(token).catch(() => undefined);
     clearSession();
     router.push("/login");
-  }, [clearSession, router]);
+  }, [clearSession, router, token]);
 
   const refreshUser = useCallback(async () => {
     if (token) await loadUser(token);

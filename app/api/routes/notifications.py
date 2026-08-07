@@ -13,6 +13,7 @@ from app.models.usuario import Usuario
 from app.schemas.notification_schema import (
     NotificationListResponse, NotificationResponse, NotificationTicketResponse,
     PushConfigResponse, PushPreferences, PushSubscriptionCreate, PushSubscriptionResponse,
+    PushTestResponse, PushUnsubscribeRequest,
 )
 from app.services import notification_service
 
@@ -21,7 +22,7 @@ router = APIRouter(prefix="/notificaciones")
 
 @router.get("/configuracion-push", response_model=PushConfigResponse)
 def push_config():
-    enabled = bool(settings.web_push_enabled and settings.web_push_vapid_public_key)
+    enabled = bool(settings.web_push_enabled and settings.web_push_vapid_public_key and settings.web_push_vapid_private_key)
     return PushConfigResponse(enabled=enabled, public_key=settings.web_push_vapid_public_key if enabled else None)
 
 
@@ -63,18 +64,33 @@ def unsubscribe(subscription_id: int, db: Session = Depends(get_db), user: Usuar
     return Response(status_code=204)
 
 
+@router.post("/suscripciones/desactivar-actual", status_code=204)
+def unsubscribe_current(data: PushUnsubscribeRequest, db: Session = Depends(get_db), user: Usuario = Depends(get_current_user)):
+    notification_service.revoke_subscription_by_endpoint(db, data.endpoint, user.id)
+    return Response(status_code=204)
+
+
 @router.patch("/suscripciones/{subscription_id}", response_model=PushSubscriptionResponse)
 def preferences(subscription_id: int, data: PushPreferences, db: Session = Depends(get_db), user: Usuario = Depends(get_current_user)):
     return notification_service.update_preferences(db, subscription_id, user.id, data)
 
 
-@router.post("/prueba", response_model=NotificationResponse)
+@router.post("/prueba", response_model=PushTestResponse)
 async def test_notification(db: Session = Depends(get_db), user: Usuario = Depends(get_current_user)):
     if not settings.web_push_test_enabled:
         raise HTTPException(status_code=404, detail="Endpoint no disponible")
     await enforce_rate_limit("notification-test", user.id, 0, 3, 60)
     timestamp = int(datetime.now(timezone.utc).timestamp())
-    return await notification_service.notify(db, user_id=user.id, actor_id=None, notification_type="mensaje_nuevo", title="Aviso de prueba", body="Las notificaciones de Jahamina están activas.", idempotency_key=f"test:{user.id}:{timestamp}", destination_url="/reservas")
+    item = await notification_service.notify(
+        db, user_id=user.id, actor_id=None, notification_type="mensaje_nuevo",
+        title="Aviso de prueba", body="Las notificaciones de Jahamina están activas.",
+        idempotency_key=f"test:{user.id}:{timestamp}", destination_url="/reservas",
+        dispatch_push=False,
+    )
+    if item is None:
+        raise HTTPException(status_code=500, detail="No se pudo crear la notificación de prueba")
+    delivered = await notification_service._dispatch_push(db, item)
+    return PushTestResponse(notification_id=item.id, subscriptions_notified=delivered)
 
 
 @router.post("/ws-ticket", response_model=NotificationTicketResponse)

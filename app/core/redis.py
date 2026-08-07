@@ -230,3 +230,30 @@ async def release_connection(user_id: int) -> None:
     finally:
         if "client" in locals():
             await client.aclose()
+
+
+async def set_chat_presence(user_id: int, conversation_id: int, connected: bool) -> None:
+    client = get_redis_client()
+    key = f"chat:presence:{conversation_id}:{user_id}"
+    try:
+        if connected:
+            await client.incr(key)
+            await client.expire(key, 3600)
+        elif int(await client.get(key) or 0) <= 1:
+            await client.delete(key)
+        else:
+            await client.decr(key)
+    except RedisError:
+        pass
+    finally:
+        await client.aclose()
+
+
+async def is_chat_active(user_id: int, conversation_id: int) -> bool:
+    client = get_redis_client()
+    try:
+        return int(await client.get(f"chat:presence:{conversation_id}:{user_id}") or 0) > 0
+    except RedisError:
+        return False
+    finally:
+        await client.aclose()

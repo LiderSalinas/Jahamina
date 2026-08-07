@@ -152,7 +152,13 @@ export function MapView({ markers, route, onMarkerMove, onInvalidPoint, classNam
     if (!map || !maplibre || !loaded) return;
     markerInstances.current.forEach((marker) => marker.remove());
     markerInstances.current = validMarkers.map((item) => {
-      const marker = new maplibre.Marker({ color: item.color ?? "#f59e0b", draggable: item.draggable })
+      const element = document.createElement("span");
+      element.className = `jahamina-map-marker is-${item.id}`;
+      element.setAttribute("aria-hidden", "true");
+      element.style.setProperty("--marker-color", item.color ?? "#075b49");
+      const core = document.createElement("span");
+      element.appendChild(core);
+      const marker = new maplibre.Marker({ element, draggable: item.draggable })
         .setLngLat([item.longitude, item.latitude])
         .addTo(map);
       if (item.label) marker.setPopup(new maplibre.Popup({ offset: 20 }).setText(item.label));
@@ -174,8 +180,8 @@ export function MapView({ markers, route, onMarkerMove, onInvalidPoint, classNam
     if (map.getSource("route")) map.removeSource("route");
     if (validRoute.length >= 2) {
       map.addSource("route", { type: "geojson", data: { type: "Feature", properties: {}, geometry: { type: "LineString", coordinates: validRoute.map((point) => [point.longitude, point.latitude]) } } });
-      map.addLayer({ id: "route-shadow", type: "line", source: "route", layout: { "line-cap": "round", "line-join": "round" }, paint: { "line-color": "#b9d9ca", "line-width": 11, "line-opacity": 0.72 } });
-      map.addLayer({ id: "route", type: "line", source: "route", layout: { "line-cap": "round", "line-join": "round" }, paint: { "line-color": "#075b49", "line-width": 6, "line-opacity": 0.92 } });
+      map.addLayer({ id: "route-shadow", type: "line", source: "route", layout: { "line-cap": "round", "line-join": "round" }, paint: { "line-color": "#d7e9e0", "line-width": 10, "line-opacity": 0.88 } });
+      map.addLayer({ id: "route", type: "line", source: "route", layout: { "line-cap": "round", "line-join": "round" }, paint: { "line-color": "#075b49", "line-width": 5.5, "line-opacity": 0.96 } });
     }
     if (selectionSignature !== lastAutomaticCameraRef.current) {
       lastAutomaticCameraRef.current = selectionSignature;

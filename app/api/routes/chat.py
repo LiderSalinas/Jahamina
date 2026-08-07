@@ -16,6 +16,7 @@ from app.core.redis import (
     get_redis_client,
     publish_chat_event,
     release_connection,
+    set_chat_presence,
 )
 from app.core.security import get_current_user
 from app.core.settings import settings
@@ -125,7 +126,7 @@ async def send_message(
     recipient_id = conversation.solicitud.viaje.creador_id if user.id == conversation.solicitud.pasajero_id else conversation.solicitud.pasajero_id
     await notification_service.notify(
         db, user_id=recipient_id, actor_id=user.id, notification_type="mensaje_nuevo",
-        title="Nuevo mensaje", body=message.contenido[:120],
+        title="Nuevo mensaje en tu viaje", body="Tenés un mensaje nuevo.",
         idempotency_key=f"chat:{conversation_id}:{message.client_message_id or message.id}:{recipient_id}",
         destination_url=f"/reservas/{conversation.solicitud_id}", reservation_id=conversation.solicitud_id,
         trip_id=conversation.solicitud.viaje_id, conversation_id=conversation_id,
@@ -206,6 +207,7 @@ async def chat_websocket(
         pubsub_client = get_redis_client()
         pubsub = pubsub_client.pubsub()
         await pubsub.subscribe(f"chat:{conversation_id}")
+        await set_chat_presence(user_id, conversation_id, True)
         await websocket.send_json(
             event_payload(
                 "connected",
@@ -258,7 +260,7 @@ async def chat_websocket(
                     recipient_id = conversation.solicitud.viaje.creador_id if user_id == conversation.solicitud.pasajero_id else conversation.solicitud.pasajero_id
                     await notification_service.notify(
                         db, user_id=recipient_id, actor_id=user_id, notification_type="mensaje_nuevo",
-                        title="Nuevo mensaje", body=message.contenido[:120],
+                        title="Nuevo mensaje en tu viaje", body="Tenés un mensaje nuevo.",
                         idempotency_key=f"chat:{conversation_id}:{message.client_message_id or message.id}:{recipient_id}",
                         destination_url=f"/reservas/{conversation.solicitud_id}", reservation_id=conversation.solicitud_id,
                         trip_id=conversation.solicitud.viaje_id, conversation_id=conversation_id,
@@ -312,4 +314,6 @@ async def chat_websocket(
         if pubsub_client is not None:
             await pubsub_client.aclose()
         if user_id is not None:
+            if "conversation_id" in locals():
+                await set_chat_presence(user_id, conversation_id, False)
             await release_connection(user_id)

@@ -69,6 +69,22 @@ class PushPreferences(BaseModel):
     viaje: bool
 
 
+class PushUnsubscribeRequest(BaseModel):
+    endpoint: str = Field(min_length=20, max_length=2048)
+
+    @field_validator("endpoint")
+    @classmethod
+    def validate_endpoint(cls, value: str) -> str:
+        if not value.startswith("https://"):
+            raise ValueError("La suscripción Push debe usar HTTPS")
+        return value
+
+
+class PushTestResponse(BaseModel):
+    notification_id: int
+    subscriptions_notified: int
+
+
 class PushConfigResponse(BaseModel):
     enabled: bool
     public_key: str | None

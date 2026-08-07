@@ -1,4 +1,5 @@
 import asyncio
+import json
 from datetime import datetime, timedelta
 from typing import Any
 
@@ -62,12 +63,94 @@ def test_push_subscription_is_private_and_endpoint_is_unique(client: TestClient,
     payload = {"endpoint":"https://push.example/subscription-one","keys":{"p256dh":"p" * 40,"auth":"a" * 16},"dispositivo_nombre":"Teléfono"}
     created = client.post("/notificaciones/suscripciones", headers=owner, json=payload)
     assert created.status_code == 201, created.text
+    repeated = client.post("/notificaciones/suscripciones", headers=owner, json=payload)
+    assert repeated.status_code == 201 and repeated.json()["id"] == created.json()["id"]
+    second = client.post("/notificaciones/suscripciones", headers=owner, json={**payload, "endpoint":"https://push.example/subscription-two"})
+    assert second.status_code == 201 and second.json()["id"] != created.json()["id"]
     assert "endpoint" not in created.json() and "p256dh" not in created.json()
     assert client.post("/notificaciones/suscripciones", headers=outsider, json=payload).status_code == 409
     preferences = client.patch(f"/notificaciones/suscripciones/{created.json()['id']}", headers=owner, json={"mensajes":False,"reservas":True,"viaje":True})
     assert preferences.status_code == 200 and preferences.json()["mensajes"] is False
     assert client.delete(f"/notificaciones/suscripciones/{created.json()['id']}", headers=outsider).status_code == 404
     assert client.delete(f"/notificaciones/suscripciones/{created.json()['id']}", headers=owner).status_code == 204
+
+
+def test_current_device_can_unsubscribe_by_endpoint(client: TestClient, auth_headers):
+    owner = auth_headers(email="push-current@example.com")
+    outsider = auth_headers(email="push-current-other@example.com")
+    payload = {"endpoint":"https://push.example/current-device","keys":{"p256dh":"p" * 40,"auth":"a" * 16}}
+    assert client.post("/notificaciones/suscripciones", headers=owner, json=payload).status_code == 201
+    assert client.post("/notificaciones/suscripciones/desactivar-actual", headers=outsider, json={"endpoint":payload["endpoint"]}).status_code == 404
+    assert client.post("/notificaciones/suscripciones/desactivar-actual", headers=owner, json={"endpoint":payload["endpoint"]}).status_code == 204
+
+
+def test_push_configuration_and_test_endpoint_are_disabled_by_default(client: TestClient, auth_headers):
+    owner = auth_headers(email="push-disabled@example.com")
+    config = client.get("/notificaciones/configuracion-push")
+    assert config.status_code == 200 and config.json() == {"enabled": False, "public_key": None}
+    assert client.post("/notificaciones/prueba", headers=owner).status_code == 404
+
+
+def test_push_dispatch_success_and_expired_subscription(client: TestClient, auth_headers, db_session: Session, monkeypatch):
+    owner = auth_headers(email="push-dispatch@example.com")
+    owner_id = user_id(client, owner)
+    payload = {"endpoint":"https://push.example/dispatch-device","keys":{"p256dh":"p" * 40,"auth":"a" * 16}}
+    subscription_id = client.post("/notificaciones/suscripciones", headers=owner, json=payload).json()["id"]
+    notification = Notificacion(usuario_id=owner_id, tipo="viaje_iniciado", titulo="Viaje iniciado", cuerpo="Tu viaje comenzó.", url_destino="/reservas", clave_idempotencia="push:dispatch")
+    db_session.add(notification); db_session.commit(); db_session.refresh(notification)
+    monkeypatch.setattr(notification_service.settings, "web_push_enabled", True)
+    monkeypatch.setattr(notification_service.settings, "web_push_vapid_public_key", "public")
+    monkeypatch.setattr(notification_service.settings, "web_push_vapid_private_key", "private")
+    sent = []
+    monkeypatch.setattr(notification_service, "_send_web_push", lambda subscription, item: sent.append(item.id))
+    assert asyncio.run(notification_service._dispatch_push(db_session, notification)) == 1
+    assert sent == [notification.id]
+
+    def expired(*args): raise LookupError("expired")
+    monkeypatch.setattr(notification_service, "_send_web_push", expired)
+    assert asyncio.run(notification_service._dispatch_push(db_session, notification)) == 0
+    db_session.expire_all()
+    assert db_session.get(SuscripcionPush, subscription_id).activa is False
+
+
+def test_web_push_payload_and_vapid_claims_are_safe(monkeypatch):
+    captured = {}
+    monkeypatch.setattr("pywebpush.webpush", lambda **kwargs: captured.update(kwargs))
+    monkeypatch.setattr(notification_service.settings, "web_push_vapid_private_key", "private-key")
+    monkeypatch.setattr(notification_service.settings, "web_push_subject", "mailto:push@example.com")
+    subscription = SuscripcionPush(endpoint="https://push.example/safe", p256dh="p" * 40, auth="a" * 16, usuario_id=1)
+    notification = Notificacion(usuario_id=1, tipo="mensaje_nuevo", titulo="Nuevo mensaje", cuerpo="Tenés un mensaje nuevo.", url_destino="/reservas/12", clave_idempotencia="safe-payload")
+
+    notification_service._send_web_push(subscription, notification)
+
+    payload = json.loads(captured["data"])
+    assert captured["vapid_private_key"] == "private-key"
+    assert captured["vapid_claims"] == {"sub": "mailto:push@example.com"}
+    assert payload["data"]["url"] == "/reservas/12"
+    assert payload["tag"] == "safe-payload"
+    assert "endpoint" not in payload and "p256dh" not in payload and "auth" not in payload
+
+
+def test_vapid_auth_failure_preserves_subscription(client: TestClient, auth_headers, db_session: Session, monkeypatch, caplog):
+    owner = auth_headers(email="push-vapid-auth@example.com")
+    owner_id = user_id(client, owner)
+    payload = {"endpoint":"https://push.example/vapid-auth","keys":{"p256dh":"p" * 40,"auth":"a" * 16}}
+    subscription_id = client.post("/notificaciones/suscripciones", headers=owner, json=payload).json()["id"]
+    notification = Notificacion(usuario_id=owner_id, tipo="viaje_iniciado", titulo="Viaje iniciado", cuerpo="Tu viaje comenzó.", url_destino="/reservas", clave_idempotencia="push:vapid-auth")
+    db_session.add(notification); db_session.commit(); db_session.refresh(notification)
+    monkeypatch.setattr(notification_service.settings, "web_push_enabled", True)
+    monkeypatch.setattr(notification_service.settings, "web_push_vapid_public_key", "public")
+    monkeypatch.setattr(notification_service.settings, "web_push_vapid_private_key", "private")
+
+    class VapidRejected(Exception):
+        response = type("Response", (), {"status_code": 403})()
+
+    monkeypatch.setattr(notification_service, "_send_web_push", lambda *_: (_ for _ in ()).throw(VapidRejected()))
+    assert asyncio.run(notification_service._dispatch_push(db_session, notification)) == 0
+    db_session.expire_all()
+    assert db_session.get(SuscripcionPush, subscription_id).activa is True
+    assert "credenciales VAPID" in caplog.text
+    assert payload["endpoint"] not in caplog.text
 
 
 def test_push_failure_does_not_rollback_internal_notification(client: TestClient, auth_headers, db_session: Session, monkeypatch):

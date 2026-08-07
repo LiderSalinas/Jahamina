@@ -334,3 +334,31 @@ Estado: completado y validado.
 - Se añadieron primitivas compartidas para encabezados, superficies, estados asíncronos y contraseñas visibles/ocultas.
 - Se conservaron contratos API, lógica de autenticación, mapas, chat, WebSockets y notificaciones.
 - Validaciones: `npm run lint` y `npm run build` aprobados; `git diff --check` sin errores.
+
+# 2026-08-07 — Reanudación de Web Push/VAPID
+
+- Auditado el trabajo previo sin reescribir ni revertir cambios existentes: configuración VAPID, suscripciones autenticadas por dispositivo, Service Worker seguro, activación explícita, eventos de negocio, chat y documentación ya estaban implementados.
+- Completados unsubscribe del dispositivo actual y limpieza segura en logout/cambio de usuario, presencia de chat para evitar Push mientras el destinatario está conectado y respuesta verificable del endpoint de prueba.
+- Los errores 404/410 desactivan la suscripción; 401/403 se registran sin endpoint, claves ni payload y conservan el dispositivo para corregir VAPID sin obligar a una nueva suscripción.
+- El generador local reutiliza `py-vapid`, imprime las claves una sola vez y no crea archivos. No se generaron ni versionaron claves reales.
+- Validación local: `compileall`, importación/OpenAPI, contratos frontend Push, lint, build y `git diff --check` correctos. La suite completa y `alembic check` quedan bloqueados porque PostgreSQL local no está escuchando en `localhost:5433` y Docker Desktop no está iniciado.
+- Pendiente operativo: iniciar PostgreSQL/Docker y repetir Pytest/Alembic; después cargar secretos en Render/Vercel, redesplegar y probar en Android con HTTPS.
+
+# 2026-08-07 — Rediseño de publicación de viaje
+
+- `/viajes/nuevo` conserva el flujo real de tres pasos, validaciones, búsqueda limitada a Paraguay, cálculo vial, marcadores movibles y contrato de publicación.
+- Cabecera y stepper unificados con jerarquía de producto; el mapa real permanece visible como protagonista en ruta, detalles y confirmación.
+- Eliminada la vista esquemática redundante de esta pantalla y consolidado el recorrido en una tarjeta compacta con origen, destino, distancia y duración.
+- Inputs, sugerencias, selector de vehículo, asientos, revisión y acciones adoptan radios, sombras, estados de foco y espaciado consistentes con Jahamina.
+- Responsive mobile-first con mapa prioritario, controles táctiles altos y acciones persistentes; desktop utiliza una composición equilibrada de panel y mapa.
+- Validación aprobada con ESLint, build de producción de Next.js y `git diff --check`.
+
+# 2026-08-07 — Segunda pasada premium de publicación
+
+- Auditada visualmente la ruta demo en anchos de referencia móvil, tablet y desktop; las capturas y la ruta auxiliar fueron temporales y se eliminaron al terminar.
+- Refinados proporciones, pesos tipográficos, escala de espacios, stepper y superficies sin alterar el flujo ni sus contratos.
+- El mapa conserva la mayor presencia, con trazo profundo, halo suave y marcadores propios para origen, destino y puntos secundarios.
+- El resumen quedó reducido a origen, destino y métricas únicamente cuando existe un cálculo vial real; estados breves reemplazan títulos repetidos.
+- Origen/destino incorporan conexión visual, autocomplete compacto y estados de foco; Detalles y Confirmación mantienen jerarquías y acciones de edición claras.
+- El CTA de ruta vuelve a pertenecer al formulario, eliminando el vacío que producía el alto del mapa en desktop; móvil queda protegido contra desborde horizontal.
+- Validación final aprobada: ESLint, build de producción de Next.js y `git diff --check`.

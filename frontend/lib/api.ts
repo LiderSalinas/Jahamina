@@ -116,6 +116,7 @@ async function request<T>(
   if (!response.ok) {
     throw new ApiError(response.status, await parseError(response));
   }
+  if (response.status === 204) return undefined as T;
   return response.json() as Promise<T>;
 }
 
@@ -336,6 +337,8 @@ export const api = {
   pushSubscriptions(token:string): Promise<import("./types").PushSubscriptionItem[]> { return request("/notificaciones/suscripciones", {}, token); },
   subscribePush(payload:{endpoint:string;keys:{p256dh:string;auth:string};dispositivo_nombre?:string}, token:string): Promise<import("./types").PushSubscriptionItem> { return request("/notificaciones/suscripciones", {method:"POST",body:JSON.stringify(payload)}, token); },
   unsubscribePush(id:number, token:string): Promise<void> { return request(`/notificaciones/suscripciones/${id}`, {method:"DELETE"}, token); },
+  unsubscribeCurrentPush(endpoint:string, token:string): Promise<void> { return request("/notificaciones/suscripciones/desactivar-actual", {method:"POST",body:JSON.stringify({endpoint})}, token); },
   updatePushPreferences(id:number, payload:{mensajes:boolean;reservas:boolean;viaje:boolean}, token:string): Promise<import("./types").PushSubscriptionItem> { return request(`/notificaciones/suscripciones/${id}`, {method:"PATCH",body:JSON.stringify(payload)}, token); },
+  testPush(token:string): Promise<{notification_id:number;subscriptions_notified:number}> { return request("/notificaciones/prueba", {method:"POST"}, token); },
   async notificationWebSocketUrl(token:string): Promise<string> { const response=await request<{ticket:string}>("/notificaciones/ws-ticket",{method:"POST"},token); return buildWebSocketUrl(`/notificaciones/ws?ticket=${encodeURIComponent(response.ticket)}`); },
 };
