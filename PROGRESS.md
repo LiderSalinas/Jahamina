@@ -405,6 +405,13 @@ Estado: completado y validado.
 - Perfil y hero reutilizan `UserAvatar`; los contratos frontend quedan preparados para recibir `imagen_url` cuando exista una fuente persistente real.
 - Validación aprobada: ESLint, build de producción, 129 pruebas Pytest y `git diff --check`.
 
+# 2026-08-07 — Imágenes persistentes con Cloudinary
+
+- Migración `20260807_0008` añade `imagen_url` nullable a usuarios y vehículos; PostgreSQL guarda solo URLs HTTPS.
+- Uploads JWT firmados en backend con MIME/firma binaria, límite de 5 MB, transformaciones por tipo y `public_id` controlado; no hay presets unsigned ni secretos frontend.
+- Perfil, header, vehículos, roadmap y chat reciben actualización visual inmediata conservando iniciales e ilustración como fallback.
+- Validación aprobada: compileall/OpenAPI, 140 pruebas Pytest, `alembic check`, ESLint, build de producción y `git diff --check`.
+
 # 2026-08-07 — Mapa real en reserva
 
 - La ruta de la reserva reutiliza `MapView`, `decodePolyline`, marcadores y controles de la publicación cuando existen coordenadas válidas de origen y destino.

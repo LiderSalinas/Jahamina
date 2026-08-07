@@ -128,6 +128,7 @@ export interface Conversation {
   puede_escribir: boolean;
   no_leidos: number;
   participante: string;
+  participante_imagen_url: string | null;
   viaje_id: number;
   origen: string;
   destino: string;
