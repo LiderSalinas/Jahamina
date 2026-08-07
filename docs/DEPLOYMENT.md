@@ -36,10 +36,16 @@ WS_TICKET_EXPIRE_SECONDS=60
 CHAT_MAX_MESSAGE_LENGTH=1000
 CHAT_RATE_LIMIT_MESSAGES=10
 CHAT_RATE_LIMIT_WINDOW_SECONDS=10
+GEOCODING_PROVIDER=nominatim
+GEOCODING_PROVIDER_URL=https://nominatim.openstreetmap.org
 ```
 
 `CORS_ORIGINS` acepta varios orígenes separados por coma. Genera
 `JWT_SECRET_KEY` con entropía suficiente y guárdala como secreto.
+
+Para evaluar MapTiler sin cambiar el frontend configure `GEOCODING_PROVIDER=maptiler`,
+`MAPTILER_GEOCODING_URL=https://api.maptiler.com/geocoding` y
+`MAPTILER_API_KEY` como secreto del backend. Nominatim continúa como fallback.
 
 ## 3. Comandos del backend
 

@@ -15,6 +15,9 @@ class Coordinates(BaseModel):
 
 class GeocodingResult(Coordinates):
     label: str
+    primary: str | None = None
+    secondary: str | None = None
+    place_type: str | None = None
 
 
 class RouteRequest(BaseModel):

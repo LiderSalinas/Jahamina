@@ -24,8 +24,11 @@ class Settings(BaseSettings):
     chat_max_payload_bytes: int = 4096
     chat_max_connections_per_user: int = 3
     geocoding_provider_url: str = "https://nominatim.openstreetmap.org"
+    geocoding_provider: str = "nominatim"
     routing_provider_url: str = "https://router.project-osrm.org"
     geocoding_api_key: str | None = None
+    maptiler_geocoding_url: str = "https://api.maptiler.com/geocoding"
+    maptiler_api_key: str | None = None
     routing_api_key: str | None = None
     map_request_timeout_seconds: float = 5
     map_cache_ttl_seconds: int = 3600

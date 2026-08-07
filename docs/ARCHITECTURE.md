@@ -91,6 +91,8 @@ PostgreSQL conserva una sesión y su última posición, no un historial. Redis c
 # Alcance geográfico
 
 `app/core/geo.py` es la fuente única de país y límites operativos. Nominatim recibe `countrycodes=py`, `bounded=1`, el viewbox de Paraguay y `addressdetails=1`; el backend descarta resultados sin `country_code=py` o fuera del rectángulo. `frontend/lib/paraguayGeo.ts` contiene los límites equivalentes para MapLibre y validación inmediata, sin sustituir la protección del servidor.
+
+La geocodificación usa proveedores intercambiables detrás del backend. `GEOCODING_PROVIDER=nominatim` es el valor predeterminado: normaliza consultas, solicita nombres en español y ordena localidades antes que distritos, barrios, calles y POI. `GEOCODING_PROVIDER=maptiler` habilita el adaptador experimental con `MAPTILER_API_KEY`; si falla, se intenta Nominatim. Las claves no se exponen mediante variables `NEXT_PUBLIC_*`. MapLibre, geocodificación y OSRM permanecen desacoplados.
 # Notificaciones
 
 `NotificationService` centraliza idempotencia, persistencia y destinatarios.

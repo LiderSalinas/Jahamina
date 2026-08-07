@@ -9,6 +9,7 @@ import httpx
 import pytest
 from app.schemas.map_schema import RouteResponse
 from app.services import map_service
+from app.services.geocoding_provider import MapTilerProvider, NominatimProvider, configured_providers, normalize_search_query, rank_suggestions
 
 
 def mobility_flow(client: TestClient, auth_headers, create_vehicle) -> dict[str, Any]:
@@ -111,10 +112,68 @@ def test_geocoder_is_bounded_to_paraguay_and_filters_foreign_results(monkeypatch
     assert calls[0]["bounded"] == 1
     assert calls[0]["viewbox"] == "-62.65,-19.29,-54.26,-27.61"
     assert calls[0]["addressdetails"] == 1
+    assert calls[0]["namedetails"] == 1
+    assert calls[0]["accept-language"] == "es"
     assert cached == results
     assert len(calls) == 1
     assert asyncio.run(map_service.geocode(f"Buenos Aires-{uuid4().hex}")) == []
     assert len(asyncio.run(map_service.geocode(f"San Juan-{uuid4().hex}"))) == 1
+
+
+@pytest.mark.parametrize("query", [
+    "San Juan Bautista", "San Ignacio", "Ayolas", "Santa Rosa", "San Miguel", "Santiago",
+    "Encarnación", "Asunción", "Villarrica", "Caaguazú", "Coronel Oviedo", "Ciudad del Este",
+])
+def test_paraguayan_city_search_does_not_require_department_or_country(monkeypatch, query):
+    calls = []
+
+    class Response:
+        def raise_for_status(self): return None
+        def json(self):
+            return [{
+                "name": normalize_search_query(query), "type": "city", "addresstype": "city",
+                "lat": "-25.3", "lon": "-57.5",
+                "address": {"city": normalize_search_query(query), "state": "Paraguay", "country_code": "py"},
+            }]
+
+    class Client:
+        def __init__(self, **kwargs): pass
+        async def __aenter__(self): return self
+        async def __aexit__(self, *args): return None
+        async def get(self, url, **kwargs):
+            calls.append(kwargs["params"])
+            return Response()
+
+    monkeypatch.setattr(httpx, "AsyncClient", Client)
+    results = asyncio.run(NominatimProvider().search(query))
+
+    assert results[0]["primary"] == normalize_search_query(query)
+    assert results[0]["secondary"].endswith("Paraguay")
+    assert calls[0]["q"] == normalize_search_query(query)
+    assert "departamento" not in calls[0]["q"].casefold()
+    assert calls[0]["countrycodes"] == "py"
+    assert len(results) <= 6
+
+
+def test_city_results_rank_before_pois_and_aliases_are_accent_insensitive():
+    items = [
+        {"primary": "San Juan Hotel", "secondary": "Misiones, Paraguay", "place_type": "hotel"},
+        {"primary": "San Juan Bautista", "secondary": "Misiones, Paraguay", "place_type": "city"},
+        {"primary": "San Juan", "secondary": "Misiones, Paraguay", "place_type": "road"},
+    ]
+
+    assert rank_suggestions(items, "san juan", 6)[0]["primary"] == "San Juan Bautista"
+    assert normalize_search_query("encarnacion") == "Encarnación"
+    assert normalize_search_query("  Ayolas  ") == "Ayolas"
+
+
+def test_maptiler_is_optional_and_keeps_nominatim_as_fallback(monkeypatch):
+    monkeypatch.setattr(map_service.settings, "geocoding_provider", "maptiler")
+
+    providers = configured_providers()
+
+    assert isinstance(providers[0], MapTilerProvider)
+    assert isinstance(providers[1], NominatimProvider)
 
 
 def test_geocoder_timeout_returns_controlled_error(monkeypatch):

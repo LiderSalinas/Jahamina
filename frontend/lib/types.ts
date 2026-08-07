@@ -33,7 +33,12 @@ export interface Trip {
 }
 
 export interface GeoPoint { latitude: number; longitude: number; }
-export interface GeocodingResult extends GeoPoint { label: string; }
+export interface GeocodingResult extends GeoPoint {
+  label: string;
+  primary?: string | null;
+  secondary?: string | null;
+  place_type?: string | null;
+}
 export interface RouteResult { distance_km: number; duration_minutes: number; geometry: string | null; }
 export interface MeetingPoint {
   reserva_id: number; texto: string | null; latitude: number | null; longitude: number | null;

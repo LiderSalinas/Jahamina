@@ -55,6 +55,7 @@ export function MapView({ markers, route, onMarkerMove, onInvalidPoint, classNam
   const maplibreRef = useRef<typeof import("maplibre-gl") | null>(null);
   const markerInstances = useRef<import("maplibre-gl").Marker[]>([]);
   const hasLoadedRef = useRef(false);
+  const lastAutomaticCameraRef = useRef("");
   const callbackRef = useRef(onMarkerMove);
   const invalidCallbackRef = useRef(onInvalidPoint);
   const style = useMemo(() => configuredStyleUrl(), []);
@@ -62,6 +63,10 @@ export function MapView({ markers, route, onMarkerMove, onInvalidPoint, classNam
   const [error, setError] = useState(() => style.url ? "" : MAP_ERROR_MESSAGE);
   const validMarkers = useMemo(() => markers.filter(validPoint), [markers]);
   const validRoute = useMemo(() => route?.filter(validPoint) ?? [], [route]);
+  const selectionSignature = useMemo(
+    () => validMarkers.map((point) => `${point.id}:${point.latitude.toFixed(6)},${point.longitude.toFixed(6)}`).join("|"),
+    [validMarkers],
+  );
 
   useEffect(() => { callbackRef.current = onMarkerMove; }, [onMarkerMove]);
   useEffect(() => { invalidCallbackRef.current = onInvalidPoint; }, [onInvalidPoint]);
@@ -76,12 +81,12 @@ export function MapView({ markers, route, onMarkerMove, onInvalidPoint, classNam
       return;
     }
     if (points.length === 1) {
-      map.easeTo({ center: [points[0].longitude, points[0].latitude], zoom: 15 });
+      map.easeTo({ center: [points[0].longitude, points[0].latitude], zoom: 14, duration: 650 });
       return;
     }
     const bounds = new maplibre.LngLatBounds();
     points.forEach((point) => bounds.extend([point.longitude, point.latitude]));
-    map.fitBounds(bounds, { padding: 55, maxZoom: 15 });
+    map.fitBounds(bounds, { padding: 55, maxZoom: 15, duration: 650 });
   }, [validMarkers, validRoute]);
 
   useEffect(() => {
@@ -172,8 +177,11 @@ export function MapView({ markers, route, onMarkerMove, onInvalidPoint, classNam
       map.addLayer({ id: "route-shadow", type: "line", source: "route", layout: { "line-cap": "round", "line-join": "round" }, paint: { "line-color": "#b9d9ca", "line-width": 11, "line-opacity": 0.72 } });
       map.addLayer({ id: "route", type: "line", source: "route", layout: { "line-cap": "round", "line-join": "round" }, paint: { "line-color": "#075b49", "line-width": 6, "line-opacity": 0.92 } });
     }
-    fitContent();
-  }, [fitContent, loaded, validMarkers, validRoute]);
+    if (selectionSignature !== lastAutomaticCameraRef.current) {
+      lastAutomaticCameraRef.current = selectionSignature;
+      fitContent();
+    }
+  }, [fitContent, loaded, selectionSignature, validMarkers, validRoute]);
 
   return (
     <div className={`map-container ${className}`}>
@@ -182,7 +190,7 @@ export function MapView({ markers, route, onMarkerMove, onInvalidPoint, classNam
       {error && <MapErrorState message={error} />}
       {loaded && !error && validMarkers.length > 0 && (
         <button className="map-recenter" type="button" onClick={fitContent} aria-label="Centrar nuevamente el mapa">
-          Centrar mapa
+          Centrar recorrido
         </button>
       )}
     </div>

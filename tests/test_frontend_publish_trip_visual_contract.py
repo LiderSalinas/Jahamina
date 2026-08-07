@@ -120,6 +120,16 @@ def test_real_map_route_has_premium_depth_layers():
     assert 'map.fitBounds(bounds' in map_view
 
 
+def test_real_map_has_an_https_production_safe_default_style():
+    map_view = MAP_VIEW.read_text(encoding="utf-8")
+
+    assert 'const DEFAULT_STYLE_URL = "https://tiles.openfreemap.org/styles/liberty"' in map_view
+    assert "return { url: DEFAULT_STYLE_URL, usingFallback: true }" in map_view
+    assert 'process.env.NODE_ENV === "development"\n    ?' not in map_view
+    assert 'import("maplibre-gl")' in map_view
+    assert "hasLoadedRef.current" in map_view
+
+
 def test_route_summary_is_below_map_instead_of_covering_it():
     flow = FLOW.read_text(encoding="utf-8")
 
