@@ -580,6 +580,57 @@ button:disabled {
 }
 @media (max-width:390px) { .request-actions { grid-template-columns:1fr; }.trip-place { font-size:.88rem; } }
 
+/* Mis viajes: tarjetas de producto y filtros compactos */
+.my-trips-page { max-width:78rem; }
+.my-trips-page .page-header { padding-bottom:var(--space-2); }
+.trip-filter { display:flex; width:max-content; max-width:100%; gap:.25rem; overflow:auto; border:1px solid var(--color-border); border-radius:999px; background:#f4f8f5; padding:.25rem; }
+.trip-filter button { min-height:2.35rem; border-radius:999px; padding:.4rem .9rem; color:var(--color-text-muted); font-size:.78rem; font-weight:750; white-space:nowrap; transition:background .18s ease,color .18s ease,box-shadow .18s ease; }
+.trip-filter button:hover,.trip-filter button:focus-visible { color:var(--color-primary); }
+.trip-filter button.is-active { background:#fff; color:var(--color-primary-strong); box-shadow:0 2px 8px rgb(24 76 57 / 10%); }
+.trip-card-official { gap:.05rem; border-color:#dce8e1; padding:1.15rem; box-shadow:0 10px 28px rgb(25 68 51 / 7%); transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease; }
+.trip-card-official:hover { border-color:#b9d6c8; box-shadow:0 14px 32px rgb(25 68 51 / 11%); transform:translateY(-2px); }
+.trip-card-official:focus-within { border-color:var(--color-primary); box-shadow:0 0 0 3px rgb(8 116 91 / 13%); }
+.trip-card-official.is-cancelled { opacity:.82; box-shadow:none; }
+.trip-card-topline { display:flex; align-items:center; justify-content:space-between; gap:.75rem; }
+.trip-role { overflow:hidden; color:var(--color-text-muted); font-size:.7rem; font-weight:700; text-overflow:ellipsis; white-space:nowrap; }
+.trip-route { position:relative; gap:.8rem; margin-top:1.2rem; }
+.trip-route-stop { min-width:0; }
+.trip-route-stop.is-destination { text-align:right; }
+.trip-route-label { display:flex; align-items:center; gap:.35rem; color:var(--color-text-muted); font-size:.66rem; font-weight:750; letter-spacing:.02em; text-transform:uppercase; }
+.trip-route-stop.is-destination .trip-route-label { justify-content:flex-end; }
+.trip-route-pin { width:.52rem; height:.52rem; flex:0 0 auto; border:2px solid #08745b; border-radius:50%; background:#e9f5ef; }
+.trip-route-pin.is-destination { border-color:#e88931; background:#fff2df; }
+.trip-place { margin-top:.28rem; font-size:1.02rem; }
+.trip-arrow { position:relative; z-index:1; display:grid; width:1.7rem; height:1.7rem; place-items:center; border-radius:50%; background:#fff7ed; font-size:1rem; }
+.trip-summary-row { display:flex; align-items:center; justify-content:space-between; gap:.75rem; margin-top:1.15rem; border-top:1px solid #e7eee9; padding-top:.8rem; color:var(--color-text-muted); font-size:.78rem; font-weight:700; }
+.trip-summary-row>span { display:inline-flex; min-width:0; align-items:center; gap:.35rem; }
+.trip-occupancy { color:var(--color-primary); }
+.trip-meta-row { min-height:0; margin-top:.55rem; border:0; padding:0; font-size:.74rem; }
+.trip-meta-row span:last-child { overflow:hidden; max-width:50%; text-overflow:ellipsis; white-space:nowrap; }
+.trip-vehicle { display:flex; min-width:0; align-items:center; gap:.7rem; margin-top:1rem; border-top:1px solid #e7eee9; padding-top:.8rem; }
+.trip-vehicle .vehicle-image { width:5.3rem; flex:0 0 5.3rem; padding:0; }
+.trip-vehicle .vehicle-image svg,.trip-vehicle .vehicle-image-photo { height:3.3rem; }
+.trip-vehicle .vehicle-image figcaption { display:none; }
+.trip-vehicle-copy { display:grid; min-width:0; gap:.12rem; }
+.trip-vehicle-copy small { color:var(--color-text-muted); font-size:.64rem; }
+.trip-vehicle-copy b { overflow:hidden; color:var(--color-text); font-size:.82rem; text-overflow:ellipsis; white-space:nowrap; }
+.trip-vehicle-copy span { overflow:hidden; color:var(--color-text-muted); font-size:.7rem; text-overflow:ellipsis; white-space:nowrap; }
+.my-trips-page .request-list { margin-top:0; }
+.my-trips-page .request-row { border-color:#eadfce; background:#fffaf3; box-shadow:0 8px 20px rgb(111 74 27 / 5%); }
+@media (prefers-reduced-motion:reduce) { .trip-card-official,.trip-filter button { transition:none; } }
+@media (max-width:767px) {
+  .trip-filter { width:100%; }
+  .trip-filter button { flex:1 0 auto; }
+  .trip-card-official { padding:1rem; }
+  .trip-summary-row { align-items:flex-start; flex-direction:column; gap:.35rem; }
+  .trip-meta-row span:last-child { max-width:58%; }
+}
+@media (max-width:390px) {
+  .trip-route { grid-template-columns:minmax(0,1fr) auto minmax(0,1fr); gap:.45rem; }
+  .trip-place { font-size:.94rem; }
+  .trip-role { max-width:9rem; }
+}
+
 /* Reserva real: composición de producto aprobada */
 .reservation-page { padding-block:var(--space-6) var(--space-12); }
 .reservation-dashboard { grid-template-columns:minmax(0,3fr) minmax(21rem,2fr); grid-template-areas:"heading heading" "message message" "status timeline" "route meeting" "route chat" "route info"; gap:var(--space-4); }

@@ -436,3 +436,11 @@ Estado: completado y validado.
 - La campana valida rutas internas y reconstruye destinos para notificaciones antiguas; el chat abre el modal exacto mediante el query `chat`.
 - Se preservo el Service Worker existente, incluyendo `data.url`, `notificationclick`, foco/navegacion y bloqueo de destinos externos.
 - Validacion inicial aprobada: pruebas especificas, lint y build de produccion.
+
+# 2026-08-07 - Refinamiento premium de Mis viajes
+
+- `TripCard` ahora presenta estado, rol, origen/destino, fecha compacta, ocupacion y proxima accion con jerarquia visual de producto.
+- `Mis viajes` incorpora filtros simples por Todos, Proximos, En curso e Historial; mantiene solicitudes pendientes y carga el vehiculo propio de forma opcional.
+- Se reutiliza `VehicleImage` para mostrar el vehiculo del conductor sin alterar contratos ni endpoints; los viajes de pasajeros conservan sus datos reales disponibles.
+- Añadidos empty states accionables, responsive mobile-first, estados de foco/hover y reduccion de movimiento.
+- Validacion aprobada: ESLint, build de produccion, 148 pruebas Pytest y `git diff --check`.
