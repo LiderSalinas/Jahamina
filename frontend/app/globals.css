@@ -631,6 +631,28 @@ button:disabled {
   .trip-role { max-width:9rem; }
 }
 
+/* Explorar viajes */
+.trips-explore-page { max-width:82rem; }
+.trip-search-panel { display:grid; gap:.85rem; border:1px solid #d7e5dd; border-radius:1.15rem; background:linear-gradient(135deg,#fff 60%,#f4f9f6); padding:1rem; box-shadow:0 10px 28px rgb(25 68 51 / 6%); }
+.trip-search-main { display:grid; grid-template-columns:minmax(0,1.5fr) minmax(10rem,.7fr) auto; align-items:end; gap:.8rem; }
+.search-input-wrap { position:relative; }
+.search-input-wrap>span { position:absolute; top:50%; left:.8rem; color:var(--color-primary); font-size:1.2rem; line-height:1; transform:translateY(-50%); }
+.search-input-wrap input { padding-left:2.25rem; }
+.trip-search-button { min-height:var(--control-height); white-space:nowrap; }
+.trip-quick-filters { display:flex; align-items:center; flex-wrap:wrap; gap:.3rem; color:var(--color-text-muted); font-size:.74rem; font-weight:700; }
+.trip-quick-filters button { border-radius:999px; padding:.38rem .72rem; color:var(--color-text-muted); font-size:.73rem; font-weight:750; transition:background .18s ease,color .18s ease; }
+.trip-quick-filters button:hover,.trip-quick-filters button:focus-visible,.trip-quick-filters button.is-active { background:#e8f4ee; color:var(--color-primary-strong); }
+.trip-quick-filters .trip-clear-filter { margin-left:auto; color:var(--color-accent-dark,#a95c14); }
+.trips-results-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+@media (max-width:767px) {
+  .trip-search-main { grid-template-columns:1fr; }
+  .trip-search-button { width:100%; }
+  .trip-quick-filters { overflow:auto; flex-wrap:nowrap; padding-bottom:.15rem; }
+  .trip-quick-filters .trip-clear-filter { margin-left:0; }
+  .trips-results-grid { grid-template-columns:1fr; }
+}
+@media (prefers-reduced-motion:reduce) { .trip-quick-filters button { transition:none; } }
+
 /* Reserva real: composición de producto aprobada */
 .reservation-page { padding-block:var(--space-6) var(--space-12); }
 .reservation-dashboard { grid-template-columns:minmax(0,3fr) minmax(21rem,2fr); grid-template-areas:"heading heading" "message message" "status timeline" "route meeting" "route chat" "route info"; gap:var(--space-4); }

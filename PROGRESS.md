@@ -444,3 +444,10 @@ Estado: completado y validado.
 - Se reutiliza `VehicleImage` para mostrar el vehiculo del conductor sin alterar contratos ni endpoints; los viajes de pasajeros conservan sus datos reales disponibles.
 - Añadidos empty states accionables, responsive mobile-first, estados de foco/hover y reduccion de movimiento.
 - Validacion aprobada: ESLint, build de produccion, 148 pruebas Pytest y `git diff --check`.
+
+# 2026-08-08 - Exploracion premium de viajes
+
+- `/viajes` incorpora cabecera de movilidad, buscador con origen/destino y fecha, fechas rapidas reales y limpieza de filtros.
+- Se reutiliza `TripCard` para ruta, estado, cupos y CTA de solicitud; el endpoint actual no expone conductor/vehiculo para estos resultados, por lo que no se inventaron datos.
+- Añadidos empty state accionable, loading estable, grid responsive y estados hover/focus respetando reduced-motion.
+- Validacion aprobada: ESLint, build de produccion, 148 pruebas Pytest y `git diff --check`.
