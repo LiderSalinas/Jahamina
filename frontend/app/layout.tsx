@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 
 import { AuthProvider } from "@/components/AuthProvider";
 import { Navbar } from "@/components/Navbar";
+import { InstallPrompt } from "@/components/pwa/InstallPrompt";
 
 import "./globals.css";
 import "maplibre-gl/dist/maplibre-gl.css";
@@ -22,6 +23,7 @@ export default function RootLayout({
       <body>
         <AuthProvider>
           <Navbar />
+          <InstallPrompt />
           <main className="app-main">{children}</main>
         </AuthProvider>
       </body>
