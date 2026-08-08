@@ -439,6 +439,71 @@ button:disabled {
   .meeting-heading { grid-template-columns:auto minmax(0,1fr); }.meeting-heading>span:last-child { grid-column:1/-1; justify-self:start; }.route-endpoints { gap:var(--space-3); }.route-endpoints b { font-size:.68rem; }.route-actions:empty { display:none; }.chat-panel-empty .chat-empty { min-height:9rem; }
 }
 
+/* Refinamiento premium final del dashboard de reserva */
+.status-surface { grid-template-columns:minmax(0,1fr) minmax(21rem,.9fr); align-items:start; gap:1.35rem; padding:clamp(1.25rem,2vw,1.65rem); }
+.status-copy { min-width:0; padding:.15rem 0; }
+.status-copy h2 { max-width:25rem; font-size:clamp(1.8rem,2.7vw,2.25rem); }
+.status-copy>p:last-child { max-width:27rem; font-size:.84rem; }
+.status-people { gap:.7rem; }
+.driver-summary { min-height:4.6rem; padding:.7rem .85rem; background:rgb(255 255 255 / 84%); box-shadow:0 6px 18px rgb(27 69 56 / 5%); }
+.driver-summary .user-avatar { width:3.9rem; height:3.9rem; }
+.driver-summary b { font-size:1.02rem; }
+.driver-summary div>span { font-size:.68rem; }
+.vehicle-image { min-height:16rem; grid-template-rows:minmax(12rem,1fr) auto; border:1px solid #e2ece7; border-radius:1rem; background:radial-gradient(circle at 52% 38%,#fff 0%,#f1f6f3 62%,#e8f0ec 100%); }
+.vehicle-image svg,.vehicle-image-photo { height:13rem; }
+.vehicle-image-photo { padding:.35rem 1rem .15rem; }
+.vehicle-image figcaption { padding:.65rem .8rem .7rem; }
+.vehicle-image figcaption b { font-size:.92rem; }
+.trip-facts { gap:.65rem; padding-top:1rem; }
+.trip-facts>div { min-height:4rem; border:1px solid rgb(216 229 223 / 78%); border-radius:.85rem; background:rgb(255 255 255 / 72%); padding:.65rem .75rem; }
+.trip-facts dt { font-size:.62rem; letter-spacing:.01em; }
+.trip-facts dd { font-size:.84rem; }
+.context-action { min-height:3.8rem; border-color:#ead7c1; background:#fffaf3; padding:.65rem .8rem; }
+.context-action .button-primary { min-height:2.6rem; background:#d9853c; box-shadow:0 5px 14px rgb(194 107 38 / 16%); }
+.context-action .button-primary:hover:not(:disabled) { background:#c8752d; }
+.meeting-area>.mobility-panel { gap:.75rem; border-radius:1.1rem; padding:1.1rem; box-shadow:0 8px 24px rgb(24 65 52 / 5%); }
+.meeting-heading { gap:.7rem!important; }
+.meeting-heading h2 { font-size:1.02rem!important; }
+.meeting-heading>span:last-child { border:1px solid #dbe8e1; background:#f5f8f6; color:#587066; font-size:.62rem; }
+.meeting-area .meeting-map,.meeting-area .map-container,.meeting-area .map-view { min-height:10.5rem; border-radius:.85rem; }
+.meeting-directions { min-height:2.5rem; }
+.chat-area { box-shadow:0 8px 24px rgb(24 65 52 / 5%); }
+.chat-area .section-intro { padding:.8rem 1rem; }
+.chat-preview-body { gap:.7rem; padding:.9rem 1rem 1rem; }
+.chat-preview-person { gap:.7rem; padding:.15rem 0 .35rem; }
+.chat-preview-person>span { width:2.7rem; height:2.7rem; box-shadow:0 0 0 3px #e8f3ed; }
+.chat-preview-person b { font-size:.84rem; }
+.chat-preview-person small { display:inline-flex; align-items:center; gap:.25rem; }
+.chat-preview-person small::before { width:.35rem; height:.35rem; border-radius:50%; background:#56a27f; content:""; }
+.chat-preview-messages { gap:.5rem; }
+.chat-preview-messages li { border:1px solid #e6eee9; border-left:3px solid #cfe0d8; border-radius:.7rem; background:#f8faf9; padding:.45rem .65rem; }
+.chat-preview-messages li:last-child { border-left-color:#87bca3; background:#f0f8f3; }
+.chat-preview-messages p { white-space:normal; line-height:1.35; }
+.chat-preview-action { min-height:2.5rem; border-color:#d7e5de; font-size:.72rem; }
+.trip-info-area { border-radius:1.1rem; box-shadow:0 8px 24px rgb(24 65 52 / 5%); }
+.trip-info-area dl { gap:.35rem; padding:.4rem .85rem .85rem; }
+.trip-info-area dl>div { border:1px solid #edf2ef; border-radius:.7rem; background:#fbfcfb; padding:.55rem .6rem; }
+.trip-info-area dt { font-size:.6rem; }
+.trip-info-area dd { margin-top:.2rem; font-size:.76rem; }
+@media (max-width:1023px) {
+  .status-surface { grid-template-columns:minmax(0,1fr) minmax(16rem,.65fr); }
+}
+@media (max-width:640px) {
+  .status-surface { grid-template-columns:1fr; gap:.9rem; padding:1rem; }
+  .status-copy h2 { font-size:1.8rem; }
+  .status-people { gap:.55rem; }
+  .driver-summary { min-height:4.2rem; }
+  .driver-summary .user-avatar { width:3.65rem; height:3.65rem; }
+  .vehicle-image { min-height:14rem; grid-template-rows:minmax(10.5rem,1fr) auto; }
+  .vehicle-image svg,.vehicle-image-photo { height:11.5rem; }
+  .trip-facts { gap:.55rem; }
+  .trip-facts>div { min-height:3.75rem; padding:.6rem .65rem; }
+  .context-action { gap:.65rem; padding:.7rem; }
+  .context-action .button-primary { min-height:2.75rem; }
+  .trip-info-area dl { gap:.3rem; padding-inline:.7rem; }
+  .chat-preview-body { padding-inline:.85rem; }
+}
+
 /* Consistencia final de listados y navegación */
 .desktop-navigation>a.is-active { border:0; border-radius:0; background:transparent; box-shadow:none; color:var(--color-primary-strong); }
 .desktop-navigation>a.is-active::after { right:.65rem; bottom:0; left:.65rem; height:3px; }
@@ -653,6 +718,50 @@ button:disabled {
 }
 @media (max-width:430px) {
   .publish-date-grid { grid-template-columns:1fr; }.publish-steps { gap:.25rem; }.publish-steps li { gap:.25rem; }.publish-steps li::after { display:none; }.publish-steps span { width:1.5rem; height:1.5rem; }.publish-map .map-container,.publish-map .map-view { min-height:13.75rem; }.publish-map-route b { font-size:.7rem; }.publish-review article { align-items:flex-start; }.publish-actions { display:grid; grid-template-columns:1fr 1fr; }.publish-actions button { width:100%; min-width:0; }.publish-main-action { width:100%; }.publish-schematic>header { align-items:flex-start; flex-direction:column; gap:.4rem; }.publish-schematic>header>span { display:none; }.publish-schematic-canvas { padding:.25rem .5rem .65rem; }.publish-schematic svg { min-height:8rem; }.publish-schematic-labels { gap:.5rem; }.publish-schematic-labels b { font-size:.74rem; }
+}
+
+/* Último ajuste visual de reserva: se mantiene al final para ganar a los tokens históricos. */
+.reservation-page .status-surface { grid-template-columns:minmax(0,1fr) minmax(21rem,.9fr); align-items:start; gap:1.35rem; padding:clamp(1.25rem,2vw,1.65rem); }
+.reservation-page .status-copy { min-width:0; padding:.15rem 0; }
+.reservation-page .status-copy h2 { max-width:25rem; font-size:clamp(1.8rem,2.7vw,2.25rem); }
+.reservation-page .status-copy>p:last-child { max-width:27rem; font-size:.84rem; }
+.reservation-page .status-people { gap:.7rem; }
+.reservation-page .driver-summary { min-height:4.6rem; padding:.7rem .85rem; background:rgb(255 255 255 / 84%); box-shadow:0 6px 18px rgb(27 69 56 / 5%); }
+.reservation-page .driver-summary .user-avatar { width:3.9rem; height:3.9rem; }
+.reservation-page .driver-summary b { font-size:1.02rem; }
+.reservation-page .vehicle-image { min-height:16rem; grid-template-rows:minmax(12rem,1fr) auto; border:1px solid #e2ece7; border-radius:1rem; background:radial-gradient(circle at 52% 38%,#fff 0%,#f1f6f3 62%,#e8f0ec 100%); }
+.reservation-page .vehicle-image svg,.reservation-page .vehicle-image-photo { height:13rem; }
+.reservation-page .vehicle-image-photo { padding:.35rem 1rem .15rem; }
+.reservation-page .trip-facts { gap:.65rem; padding-top:1rem; }
+.reservation-page .trip-facts>div { min-height:4rem; border:1px solid rgb(216 229 223 / 78%); border-radius:.85rem; background:rgb(255 255 255 / 72%); padding:.65rem .75rem; }
+.reservation-page .trip-facts dd { font-size:.84rem; }
+.reservation-page .context-action { min-height:3.8rem; border-color:#ead7c1; background:#fffaf3; padding:.65rem .8rem; }
+.reservation-page .context-action .button-primary { min-height:2.6rem; background:#d9853c; box-shadow:0 5px 14px rgb(194 107 38 / 16%); }
+.reservation-page .meeting-area>.mobility-panel { gap:.75rem; border-radius:1.1rem; padding:1.1rem; box-shadow:0 8px 24px rgb(24 65 52 / 5%); }
+.reservation-page .meeting-heading>span:last-child { border:1px solid #dbe8e1; background:#f5f8f6; color:#587066; font-size:.62rem; }
+.reservation-page .meeting-area .meeting-map,.reservation-page .meeting-area .map-container,.reservation-page .meeting-area .map-view { min-height:10.5rem; border-radius:.85rem; }
+.reservation-page .chat-area { box-shadow:0 8px 24px rgb(24 65 52 / 5%); }
+.reservation-page .chat-preview-body { gap:.7rem; padding:.9rem 1rem 1rem; }
+.reservation-page .chat-preview-person { gap:.7rem; padding:.15rem 0 .35rem; }
+.reservation-page .chat-preview-person>span { width:2.7rem; height:2.7rem; box-shadow:0 0 0 3px #e8f3ed; }
+.reservation-page .chat-preview-messages { gap:.5rem; }
+.reservation-page .chat-preview-messages li { border:1px solid #e6eee9; border-left:3px solid #cfe0d8; border-radius:.7rem; background:#f8faf9; padding:.45rem .65rem; }
+.reservation-page .chat-preview-messages li:last-child { border-left-color:#87bca3; background:#f0f8f3; }
+.reservation-page .chat-preview-messages p { white-space:normal; line-height:1.35; }
+.reservation-page .trip-info-area { border-radius:1.1rem; box-shadow:0 8px 24px rgb(24 65 52 / 5%); }
+.reservation-page .trip-info-area dl { gap:.35rem; padding:.4rem .85rem .85rem; }
+.reservation-page .trip-info-area dl>div { border:1px solid #edf2ef; border-radius:.7rem; background:#fbfcfb; padding:.55rem .6rem; }
+@media (max-width:1023px) { .reservation-page .status-surface { grid-template-columns:minmax(0,1fr) minmax(16rem,.65fr); } }
+@media (max-width:640px) {
+  .reservation-page .status-surface { grid-template-columns:1fr; gap:.9rem; padding:1rem; }
+  .reservation-page .driver-summary .user-avatar { width:3.65rem; height:3.65rem; }
+  .reservation-page .vehicle-image { min-height:14rem; grid-template-rows:minmax(10.5rem,1fr) auto; }
+  .reservation-page .vehicle-image svg,.reservation-page .vehicle-image-photo { height:11.5rem; }
+  .reservation-page .trip-facts>div { min-height:3.75rem; padding:.6rem .65rem; }
+  .reservation-page .context-action { gap:.65rem; padding:.7rem; }
+  .reservation-page .context-action .button-primary { min-height:2.75rem; }
+  .reservation-page .trip-info-area dl { gap:.3rem; padding-inline:.7rem; }
+  .reservation-page .chat-preview-body { padding-inline:.85rem; }
 }
 @media (max-width:360px) { .publish-flow { width:calc(100% - 1.5rem); }.publish-steps li { font-size:.64rem; }.publish-map-route { gap:.4rem; }.publish-card { padding:1rem; } }
 @keyframes spin { to { transform:rotate(360deg); } }
@@ -1030,4 +1139,48 @@ button:disabled {
   .publish-route-actions { position:sticky; z-index:3; bottom:0; margin:0 -1rem -1rem; background:rgb(255 255 255 / 97%); padding:.75rem 1rem calc(.75rem + env(safe-area-inset-bottom)); }
   .publish-route-actions .button-primary { width:100%; }
   .publish-actions { margin-inline:-1rem; }
+}
+
+/* Override final del dashboard de reserva */
+.reservation-page .status-surface { grid-template-columns:minmax(0,1fr) minmax(21rem,.9fr); align-items:start; gap:1.35rem; padding:clamp(1.25rem,2vw,1.65rem); }
+.reservation-page .status-copy { min-width:0; padding:.15rem 0; }
+.reservation-page .status-copy h2 { max-width:25rem; font-size:clamp(1.8rem,2.7vw,2.25rem); }
+.reservation-page .status-copy>p:last-child { max-width:27rem; font-size:.84rem; }
+.reservation-page .status-people { gap:.7rem; }
+.reservation-page .driver-summary { min-height:4.6rem; padding:.7rem .85rem; background:rgb(255 255 255 / 84%); box-shadow:0 6px 18px rgb(27 69 56 / 5%); }
+.reservation-page .driver-summary .user-avatar { width:3.9rem; height:3.9rem; }
+.reservation-page .driver-summary b { font-size:1.02rem; }
+.reservation-page .vehicle-image { min-height:16rem; grid-template-rows:minmax(12rem,1fr) auto; border:1px solid #e2ece7; border-radius:1rem; background:radial-gradient(circle at 52% 38%,#fff 0%,#f1f6f3 62%,#e8f0ec 100%); }
+.reservation-page .vehicle-image svg,.reservation-page .vehicle-image-photo { height:13rem; }
+.reservation-page .vehicle-image-photo { padding:.35rem 1rem .15rem; }
+.reservation-page .trip-facts { gap:.65rem; padding-top:1rem; }
+.reservation-page .trip-facts>div { min-height:4rem; border:1px solid rgb(216 229 223 / 78%); border-radius:.85rem; background:rgb(255 255 255 / 72%); padding:.65rem .75rem; }
+.reservation-page .trip-facts dd { font-size:.84rem; }
+.reservation-page .context-action { min-height:3.8rem; border-color:#ead7c1; background:#fffaf3; padding:.65rem .8rem; }
+.reservation-page .context-action .button-primary { min-height:2.6rem; background:#d9853c; box-shadow:0 5px 14px rgb(194 107 38 / 16%); }
+.reservation-page .meeting-area>.mobility-panel { gap:.75rem; border-radius:1.1rem; padding:1.1rem; box-shadow:0 8px 24px rgb(24 65 52 / 5%); }
+.reservation-page .meeting-heading>span:last-child { border:1px solid #dbe8e1; background:#f5f8f6; color:#587066; font-size:.62rem; }
+.reservation-page .meeting-area .meeting-map,.reservation-page .meeting-area .map-container,.reservation-page .meeting-area .map-view { min-height:10.5rem; border-radius:.85rem; }
+.reservation-page .chat-area { box-shadow:0 8px 24px rgb(24 65 52 / 5%); }
+.reservation-page .chat-preview-body { gap:.7rem; padding:.9rem 1rem 1rem; }
+.reservation-page .chat-preview-person { gap:.7rem; padding:.15rem 0 .35rem; }
+.reservation-page .chat-preview-person>span { width:2.7rem; height:2.7rem; box-shadow:0 0 0 3px #e8f3ed; }
+.reservation-page .chat-preview-messages { gap:.5rem; }
+.reservation-page .chat-preview-messages li { border:1px solid #e6eee9; border-left:3px solid #cfe0d8; border-radius:.7rem; background:#f8faf9; padding:.45rem .65rem; }
+.reservation-page .chat-preview-messages li:last-child { border-left-color:#87bca3; background:#f0f8f3; }
+.reservation-page .chat-preview-messages p { white-space:normal; line-height:1.35; }
+.reservation-page .trip-info-area { border-radius:1.1rem; box-shadow:0 8px 24px rgb(24 65 52 / 5%); }
+.reservation-page .trip-info-area dl { gap:.35rem; padding:.4rem .85rem .85rem; }
+.reservation-page .trip-info-area dl>div { border:1px solid #edf2ef; border-radius:.7rem; background:#fbfcfb; padding:.55rem .6rem; }
+@media (max-width:1023px) { .reservation-page .status-surface { grid-template-columns:minmax(0,1fr) minmax(16rem,.65fr); } }
+@media (max-width:640px) {
+  .reservation-page .status-surface { grid-template-columns:1fr; gap:.9rem; padding:1rem; }
+  .reservation-page .driver-summary .user-avatar { width:3.65rem; height:3.65rem; }
+  .reservation-page .vehicle-image { min-height:14rem; grid-template-rows:minmax(10.5rem,1fr) auto; }
+  .reservation-page .vehicle-image svg,.reservation-page .vehicle-image-photo { height:11.5rem; }
+  .reservation-page .trip-facts>div { min-height:3.75rem; padding:.6rem .65rem; }
+  .reservation-page .context-action { gap:.65rem; padding:.7rem; }
+  .reservation-page .context-action .button-primary { min-height:2.75rem; }
+  .reservation-page .trip-info-area dl { gap:.3rem; padding-inline:.7rem; }
+  .reservation-page .chat-preview-body { padding-inline:.85rem; }
 }
