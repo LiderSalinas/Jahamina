@@ -65,6 +65,5 @@ def test_mobile_menu_supports_escape_and_outside_close():
     navbar = NAVBAR.read_text(encoding="utf-8")
 
     assert 'event.key === "Escape"' in navbar
-    assert 'className="mobile-menu-backdrop"' in navbar
-    assert 'aria-controls="mobile-navigation"' in navbar
-    assert 'className="mobile-account-summary"' in navbar
+    assert 'className="mobile-navigation"' in navbar
+    assert 'document.addEventListener("pointerdown", closeOutside)' in navbar

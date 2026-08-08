@@ -445,6 +445,14 @@ Estado: completado y validado.
 - Añadidos empty states accionables, responsive mobile-first, estados de foco/hover y reduccion de movimiento.
 - Validacion aprobada: ESLint, build de produccion, 148 pruebas Pytest y `git diff --check`.
 
+# 2026-08-08 - Header global y navegacion responsive
+
+- `Navbar` conserva autenticacion, rutas activas por subruta, `NotificationBell`, `UserAvatar`, dropdown y logout; desktop prioriza Viajes, Reservas, Mis viajes y Perfil.
+- En mobile se reemplazo el menu desplegable por bottom navigation fija de cuatro destinos, con `safe-area-inset-bottom`, padding global y activo accesible.
+- El dropdown incluye perfil y vehiculos sin duplicar `InstallPrompt`; el Service Worker/PWA y notificaciones no fueron alterados.
+- Añadidos contratos frontend para rutas, estado activo, navbar autenticado/publico, avatar, notificaciones, logout y safe areas.
+- Validacion aprobada: ESLint, build de produccion, 150 pruebas Pytest y `git diff --check`.
+
 # 2026-08-08 - Exploracion premium de viajes
 
 - `/viajes` incorpora cabecera de movilidad, buscador con origen/destino y fecha, fechas rapidas reales y limpieza de filtros.
