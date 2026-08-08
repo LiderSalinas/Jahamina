@@ -424,3 +424,8 @@ Estado: completado y validado.
 - Añadidos `imagen_public_id` nullable a Usuario y Vehículo mediante la migración `20260807_0009`, sin exponerlos en schemas.
 - Cloudinary genera public IDs aleatorios bajo carpetas controladas; los endpoints guardan URL + ID y limpian recursos anteriores de forma tolerante a fallos.
 - Validación específica de MIME, firma binaria, tamaño máximo de 5 MB y formato del public ID; sin secretos ni binarios en PostgreSQL.
+
+# 2026-08-07 — Diagnóstico seguro de errores Cloudinary
+
+- Los fallos HTTP, transporte y respuestas inválidas de Cloudinary ahora registran operación, endpoint, status remoto, tipo y mensaje sanitizado; nunca secretos ni binarios.
+- El frontend sigue recibiendo un 502 amigable para errores del proveedor; la causa concreta queda disponible en Render sin cambiar credenciales.

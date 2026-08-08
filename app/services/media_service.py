@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from hashlib import sha1
 from dataclasses import dataclass
+import logging
 import re
 import secrets
 import time
@@ -12,6 +13,9 @@ import httpx
 from fastapi import UploadFile
 
 from app.core.settings import settings
+
+
+logger = logging.getLogger(__name__)
 
 
 ALLOWED_IMAGE_TYPES = {"image/jpeg", "image/png", "image/webp"}
@@ -90,6 +94,51 @@ def _safe_cloudinary_url(value: object) -> str:
     return value
 
 
+def _sanitize_provider_message(value: object) -> str:
+    if not isinstance(value, str):
+        return "Cloudinary no devolvió un mensaje de error."
+    message = " ".join(value.split())
+    message = re.sub(
+        r"(?i)(api[_ -]?secret|authorization|token|signature)\s*[:=]\s*\S+",
+        r"\1=[redacted]",
+        message,
+    )
+    return message[:300] or "Cloudinary devolvió un mensaje de error vacío."
+
+
+def _provider_error_message(response: httpx.Response) -> str:
+    try:
+        body = response.json()
+    except ValueError:
+        return "Cloudinary devolvió una respuesta no JSON."
+    if isinstance(body, dict):
+        error = body.get("error")
+        if isinstance(error, dict):
+            return _sanitize_provider_message(error.get("message"))
+        return _sanitize_provider_message(body.get("message"))
+    return "Cloudinary devolvió un error con formato inesperado."
+
+
+def _log_provider_failure(
+    *,
+    operation: str,
+    endpoint: str,
+    response: httpx.Response | None = None,
+    error: Exception | None = None,
+) -> None:
+    status_code = response.status_code if response is not None else None
+    message = _provider_error_message(response) if response is not None else "No hubo respuesta HTTP de Cloudinary."
+    error_type = type(error).__name__ if error is not None else "HTTPStatusError"
+    logger.warning(
+        "cloudinary operation=%s endpoint=%s status=%s error_type=%s message=%s",
+        operation,
+        endpoint,
+        status_code,
+        error_type,
+        message,
+    )
+
+
 def _new_public_id(owner: Literal["users", "vehicles"], owner_id: int) -> str:
     return f"jahamina/{owner}/{owner_id}/image-{secrets.token_hex(12)}"
 
@@ -108,10 +157,11 @@ async def upload_image(file: UploadFile, *, owner: Literal["users", "vehicles"],
     transformation = "c_fill,g_auto,h_512,q_auto:good,w_512" if owner == "users" else "c_limit,h_1200,q_auto:good,w_1600"
     signed = {"invalidate": "true", "overwrite": "true", "public_id": public_id, "timestamp": str(int(time.time())), "transformation": transformation}
     payload = {**signed, "api_key": api_key, "signature": _signature(signed, api_secret)}
+    endpoint = f"/v1_1/{cloud_name}/image/upload"
     try:
         async with httpx.AsyncClient(timeout=20) as client:
             response = await client.post(
-                f"https://api.cloudinary.com/v1_1/{cloud_name}/image/upload",
+                f"https://api.cloudinary.com{endpoint}",
                 data=payload,
                 files={"file": ("image", data, content_type)},
             )
@@ -120,7 +170,22 @@ async def upload_image(file: UploadFile, *, owner: Literal["users", "vehicles"],
                 secure_url=_safe_cloudinary_url(response.json().get("secure_url")),
                 public_id=public_id,
             )
-    except (httpx.HTTPError, ValueError, KeyError) as error:
+    except httpx.HTTPStatusError as error:
+        _log_provider_failure(operation="upload", endpoint=endpoint, response=error.response, error=error)
+        raise MediaProviderError("No pudimos guardar la imagen.") from error
+    except httpx.RequestError as error:
+        _log_provider_failure(operation="upload", endpoint=endpoint, error=error)
+        raise MediaProviderError("No pudimos guardar la imagen.") from error
+    except MediaProviderError as error:
+        _log_provider_failure(
+            operation="upload",
+            endpoint=endpoint,
+            response=response,
+            error=error,
+        )
+        raise
+    except (ValueError, KeyError) as error:
+        _log_provider_failure(operation="upload", endpoint=endpoint, response=response, error=error)
         raise MediaProviderError("No pudimos guardar la imagen. Intentá nuevamente.") from error
 
 
@@ -129,9 +194,14 @@ async def delete_image(*, public_id: str) -> None:
     public_id = _validate_public_id(public_id)
     signed = {"invalidate": "true", "public_id": public_id, "timestamp": str(int(time.time()))}
     payload = {**signed, "api_key": api_key, "signature": _signature(signed, api_secret)}
+    endpoint = f"/v1_1/{cloud_name}/image/destroy"
     try:
         async with httpx.AsyncClient(timeout=20) as client:
-            response = await client.post(f"https://api.cloudinary.com/v1_1/{cloud_name}/image/destroy", data=payload)
+            response = await client.post(f"https://api.cloudinary.com{endpoint}", data=payload)
             response.raise_for_status()
-    except httpx.HTTPError as error:
-        raise MediaProviderError("No pudimos eliminar la imagen. Intentá nuevamente.") from error
+    except httpx.HTTPStatusError as error:
+        _log_provider_failure(operation="destroy", endpoint=endpoint, response=error.response, error=error)
+        raise MediaProviderError("No pudimos eliminar la imagen.") from error
+    except httpx.RequestError as error:
+        _log_provider_failure(operation="destroy", endpoint=endpoint, error=error)
+        raise MediaProviderError("No pudimos eliminar la imagen.") from error

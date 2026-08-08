@@ -135,6 +135,44 @@ def test_cloudinary_upload_is_signed_and_uses_controlled_public_id(monkeypatch) 
     assert "test-secret" not in str(captured)
 
 
+def test_cloudinary_http_error_is_logged_without_secrets(monkeypatch, caplog) -> None:
+    class Response:
+        status_code = 401
+
+        def json(self) -> dict[str, dict[str, str]]:
+            return {"error": {"message": "Invalid Signature api_secret=do-not-log"}}
+
+        def raise_for_status(self) -> None:
+            request = httpx.Request("POST", "https://api.cloudinary.com/v1_1/test-cloud/image/upload")
+            raise httpx.HTTPStatusError("bad", request=request, response=self)
+
+    class Client:
+        def __init__(self, **kwargs): pass
+        async def __aenter__(self): return self
+        async def __aexit__(self, *args): return None
+        async def post(self, *args, **kwargs): return Response()
+
+    import httpx
+
+    monkeypatch.setattr(settings, "cloudinary_cloud_name", "test-cloud")
+    monkeypatch.setattr(settings, "cloudinary_api_key", "test-key")
+    monkeypatch.setattr(settings, "cloudinary_api_secret", "super-secret")
+    monkeypatch.setattr(media_service.httpx, "AsyncClient", Client)
+    with caplog.at_level("WARNING", logger="app.services.media_service"):
+        try:
+            asyncio.run(media_service.upload_image(_upload(PNG, "image/png"), owner="users", owner_id=7))
+        except media_service.MediaProviderError:
+            pass
+        else:
+            raise AssertionError("Cloudinary HTTP errors must be converted to MediaProviderError")
+    record = " ".join(caplog.messages)
+    assert "operation=upload" in record
+    assert "status=401" in record
+    assert "Invalid Signature" in record
+    assert "super-secret" not in record
+    assert "do-not-log" not in record
+
+
 def test_new_users_and_vehicles_keep_null_images(client, auth_headers, create_vehicle) -> None:
     headers = auth_headers(email="media-null@example.com")
     assert client.get("/auth/me", headers=headers).json()["imagen_url"] is None
