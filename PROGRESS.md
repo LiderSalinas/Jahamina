@@ -445,6 +445,13 @@ Estado: completado y validado.
 - Añadidos empty states accionables, responsive mobile-first, estados de foco/hover y reduccion de movimiento.
 - Validacion aprobada: ESLint, build de produccion, 148 pruebas Pytest y `git diff --check`.
 
+# 2026-08-08 - Mobile Android de exploracion de viajes
+
+- Corregida la cascada CSS que reactivaba fragmentos de navegacion desktop en pantallas pequenas; la bottom navigation queda fixed y visible sobre contenido y mapas.
+- `/viajes` mobile compacta hero y CTA, convierte filtros en chips, mantiene Buscar viajes como accion primaria y presenta las rutas verticalmente.
+- Disponibilidad usa lugares reales y las cards respetan targets tactiles, safe areas y padding inferior global.
+- Validacion aprobada: ESLint, build de produccion, 152 pruebas Pytest y `git diff --check`.
+
 # 2026-08-08 - Header global y navegacion responsive
 
 - `Navbar` conserva autenticacion, rutas activas por subruta, `NotificationBell`, `UserAvatar`, dropdown y logout; desktop prioriza Viajes, Reservas, Mis viajes y Perfil.
