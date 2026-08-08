@@ -56,7 +56,7 @@ export function Navbar() {
           <button className="account-trigger" type="button" aria-label="Abrir menú de cuenta" aria-expanded={accountOpen} aria-controls="account-navigation" onClick={() => setAccountOpen((value) => !value)}><UserAvatar name={user.nombre} imageUrl={user.imagen_url} size="sm" /><span className="account-copy"><b>{user.nombre}</b><small>Mi cuenta</small></span><span aria-hidden="true">⌄</span></button>
           {accountOpen && <div className="account-menu" id="account-navigation"><Link href="/perfil" onClick={closeAccount}>Mi perfil</Link><Link href="/vehiculos" onClick={closeAccount}>Mis vehículos</Link><button type="button" onClick={() => { closeAccount(); logout(); }}>Cerrar sesión</button></div>}
         </div>
-        <div className="mobile-navigation" aria-label="Navegación móvil">{links.map(([label, href, icon]) => <Link key={href} href={href} aria-current={isActive(href) ? "page" : undefined} className={isActive(href) ? "is-active" : ""}><span aria-hidden>{icon}</span><small>{label}</small>{href === "/reservas" && <UnreadBadge count={unread.total} />}</Link>)}</div>
+        <div className="mobile-bottom-nav" aria-label="Navegación móvil">{links.map(([label, href, icon]) => <Link key={href} href={href} aria-current={isActive(href) ? "page" : undefined} className={isActive(href) ? "is-active" : ""}><span aria-hidden>{icon}</span><small>{label}</small>{href === "/reservas" && <UnreadBadge count={unread.total} />}</Link>)}</div>
       </> : <div className="public-navigation"><Link href="/login">Ingresar</Link><Link className="button-primary" href="/registro">Crear cuenta</Link></div>}
     </nav>
   </header>;

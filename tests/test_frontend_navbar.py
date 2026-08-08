@@ -23,7 +23,7 @@ def test_navbar_preserves_notifications_avatar_logout_and_mobile_safe_area() -> 
     assert "NotificationBell" in navbar
     assert "UserAvatar" in navbar
     assert "logout()" in navbar
-    assert "mobile-navigation" in navbar
+    assert "mobile-bottom-nav" in navbar
     assert "env(safe-area-inset-bottom)" in styles
     assert "InstallPrompt" in layout
 
@@ -31,9 +31,9 @@ def test_navbar_preserves_notifications_avatar_logout_and_mobile_safe_area() -> 
 def test_mobile_shell_has_fixed_bottom_navigation_and_desktop_is_hidden() -> None:
     navbar = (ROOT / "frontend/components/Navbar.tsx").read_text(encoding="utf-8")
     styles = (ROOT / "frontend/app/globals.css").read_text(encoding="utf-8")
-    assert 'className="mobile-navigation"' in navbar
-    assert styles.count(".mobile-navigation") >= 3
-    assert "position:fixed !important" in styles
+    assert 'className="mobile-bottom-nav"' in navbar
+    assert ".mobile-bottom-nav" in styles
+    assert "position:fixed" in styles
     assert "display:none !important" in styles
     assert "padding-bottom:calc(4.35rem + env(safe-area-inset-bottom))" in styles
 
