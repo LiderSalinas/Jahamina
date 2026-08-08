@@ -429,3 +429,10 @@ Estado: completado y validado.
 
 - Los fallos HTTP, transporte y respuestas inválidas de Cloudinary ahora registran operación, endpoint, status remoto, tipo y mensaje sanitizado; nunca secretos ni binarios.
 - El frontend sigue recibiendo un 502 amigable para errores del proveedor; la causa concreta queda disponible en Render sin cambiar credenciales.
+
+# 2026-08-07 - Navegacion contextual de notificaciones
+
+- Centralizado el destino interno: mensajes abren `/reservas/{id}?chat={conversation_id}` y los eventos de reserva abren su detalle.
+- La campana valida rutas internas y reconstruye destinos para notificaciones antiguas; el chat abre el modal exacto mediante el query `chat`.
+- Se preservo el Service Worker existente, incluyendo `data.url`, `notificationclick`, foco/navegacion y bloqueo de destinos externos.
+- Validacion inicial aprobada: pruebas especificas, lint y build de produccion.

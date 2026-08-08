@@ -24,6 +24,14 @@ export function ChatPreview({ reservationId, reservationState, tripState }: { re
   }, [reservationId, token]);
 
   useEffect(() => {
+    if (!conversation || typeof window === "undefined") return;
+    const requestedConversation = Number(new URLSearchParams(window.location.search).get("chat"));
+    if (!Number.isInteger(requestedConversation) || requestedConversation !== conversation.id) return;
+    const timer = window.setTimeout(() => setOpen(true), 0);
+    return () => window.clearTimeout(timer);
+  }, [conversation]);
+
+  useEffect(() => {
     const show = () => setOpen(true);
     window.addEventListener("jahamina:open-chat", show);
     return () => window.removeEventListener("jahamina:open-chat", show);

@@ -29,6 +29,25 @@ def validate_internal_url(value: str) -> str:
     return value
 
 
+def notification_target(
+    notification_type: str,
+    *,
+    reservation_id: int | None = None,
+    trip_id: int | None = None,
+    conversation_id: int | None = None,
+    fallback: str = "/reservas",
+) -> str:
+    """Centraliza la navegación contextual sin permitir destinos externos."""
+    if reservation_id is not None:
+        target = f"/reservas/{reservation_id}"
+        if notification_type == "mensaje_nuevo" and conversation_id is not None:
+            target += f"?chat={conversation_id}"
+        return target
+    if trip_id is not None:
+        return "/mis-viajes"
+    return fallback
+
+
 def list_notifications(db: Session, user_id: int, limit: int = 30) -> tuple[list[Notificacion], int]:
     items = list(db.scalars(select(Notificacion).where(Notificacion.usuario_id == user_id).order_by(Notificacion.creada_en.desc()).limit(limit)))
     unread = db.scalar(select(func.count(Notificacion.id)).where(Notificacion.usuario_id == user_id, Notificacion.leida.is_(False))) or 0
@@ -184,7 +203,13 @@ async def notify(
 ) -> Notificacion | None:
     if actor_id == user_id:
         return None
-    destination_url = validate_internal_url(destination_url)
+    destination_url = validate_internal_url(notification_target(
+        notification_type,
+        reservation_id=reservation_id,
+        trip_id=trip_id,
+        conversation_id=conversation_id,
+        fallback=destination_url,
+    ))
     item = db.scalar(select(Notificacion).where(Notificacion.clave_idempotencia == idempotency_key))
     if item:
         return item

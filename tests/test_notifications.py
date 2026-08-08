@@ -57,6 +57,14 @@ def test_actor_is_not_notified_and_external_url_is_rejected(auth_headers, client
         assert error.status_code == 422
 
 
+def test_notification_target_is_contextual_and_internal() -> None:
+    assert notification_service.notification_target(
+        "mensaje_nuevo", reservation_id=12, conversation_id=34, fallback="/reservas"
+    ) == "/reservas/12?chat=34"
+    assert notification_service.notification_target("viaje_iniciado", reservation_id=12) == "/reservas/12"
+    assert notification_service.notification_target("viaje_iniciado", trip_id=7) == "/mis-viajes"
+
+
 def test_push_subscription_is_private_and_endpoint_is_unique(client: TestClient, auth_headers):
     owner = auth_headers(email="push-owner@example.com")
     outsider = auth_headers(email="push-other@example.com")
@@ -175,7 +183,10 @@ def test_request_and_chat_create_notifications(client: TestClient, auth_headers,
     conversation = client.get(f"/reservas/{request_id}/conversacion", headers=passenger).json()
     sent = client.post(f"/conversaciones/{conversation['id']}/mensajes", headers=passenger, json={"contenido":"¿Dónde nos encontramos?","client_message_id":"notify-chat-message"})
     assert sent.status_code == 201, sent.text
-    types = [item["tipo"] for item in client.get("/notificaciones", headers=driver).json()["items"]]
+    driver_items = client.get("/notificaciones", headers=driver).json()["items"]
+    types = [item["tipo"] for item in driver_items]
     assert "mensaje_nuevo" in types
+    message_notification = next(item for item in driver_items if item["tipo"] == "mensaje_nuevo")
+    assert message_notification["url_destino"] == f"/reservas/{request_id}?chat={conversation['id']}"
     passenger_types = [item["tipo"] for item in client.get("/notificaciones", headers=passenger).json()["items"]]
     assert "solicitud_aceptada" in passenger_types

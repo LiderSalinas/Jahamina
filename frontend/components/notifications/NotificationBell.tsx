@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { api } from "@/lib/api";
 import type { JahaminaNotification, NotificationList } from "@/lib/types";
 import { NotificationPermissionCard } from "./NotificationPermissionCard";
+import { safeNotificationTarget } from "@/lib/notification-navigation";
 
 const EMPTY: NotificationList = { items: [], total_no_leidas: 0 };
 
@@ -54,7 +55,7 @@ export function NotificationBell({ token }: { token: string }) {
 
   async function choose(item: JahaminaNotification) {
     if (!item.leida) await api.readNotification(item.id, token);
-    setOpen(false); await refresh(); router.push(item.url_destino);
+    setOpen(false); await refresh(); router.push(safeNotificationTarget(item));
   }
   async function readAll() { await api.readAllNotifications(token); await refresh(); }
 
