@@ -734,6 +734,8 @@ button:disabled {
 .trip-real-map .publish-route-points { grid-template-columns:minmax(0,1fr) auto minmax(0,1fr); align-items:center; gap:.8rem; }
 .trip-real-map .publish-route-points>span { grid-template-columns:.8rem minmax(0,1fr); }
 .trip-real-map .publish-route-points>span:last-child { text-align:right; }.trip-real-map .publish-route-points>span:last-child i { grid-column:2; }.trip-real-map .publish-route-points>span:last-child small,.trip-real-map .publish-route-points>span:last-child b { grid-column:1; grid-row:auto; }
+.trip-real-map .publish-route-points>span:last-child { grid-template-columns:minmax(0,1fr) .8rem; }
+.trip-real-map .publish-route-points b { display:-webkit-box; overflow:hidden; -webkit-box-orient:vertical; -webkit-line-clamp:2; line-height:1.3; white-space:normal; overflow-wrap:anywhere; }
 .trip-real-map .publish-route-points>em { position:static; width:3rem; height:2px; border-radius:999px; background:linear-gradient(90deg,var(--color-primary),var(--color-accent)); }
 .meeting-empty-copy { margin-top:.18rem; color:var(--color-text-muted); font-size:.72rem; line-height:1.4; }
 
@@ -742,6 +744,12 @@ button:disabled {
 }
 @media (max-width:640px) {
   .reservation-page { width:calc(100% - 2rem); }.status-surface { grid-template-columns:1fr; border-radius:1.25rem; padding:1.1rem; }.vehicle-image { min-height:10rem; }.trip-facts { grid-template-columns:1fr 1fr; }.trip-facts>div:last-child { grid-column:1/-1; }.route-area .roadmap-map-card:not(.trip-real-map),.route-empty { min-height:19rem; padding:1rem; }.route-area .roadmap-map svg { min-height:12rem; }.map-stop-preview { grid-template-columns:1fr 1fr; }.map-stop-preview>span:nth-child(2) { text-align:right; }.map-stop-preview>span:last-child { grid-column:1/-1; border-top:1px solid #edf2ef; padding-top:.55rem; text-align:left; }.route-fallback-meta { align-items:flex-start; flex-direction:column; }.timeline-area>.roadmap-card,.meeting-area>.mobility-panel { padding:1rem; }.trip-real-map .publish-map-stage,.trip-real-map .publish-map-stage>.map-container,.trip-real-map .publish-map-stage .map-view { min-height:18rem; }.trip-real-map>header { padding:1rem; }.trip-real-map .publish-map-summary { padding:.9rem 1rem 1rem; }.trip-real-map .publish-route-points { gap:.45rem; }.trip-real-map .publish-route-points>em { width:1.5rem; }
+}
+@media (max-width:640px) {
+  .trip-real-map .publish-route-points { grid-template-columns:minmax(0,1fr); gap:.55rem; }
+  .trip-real-map .publish-route-points>em { width:100%; height:2px; }
+  .trip-real-map .publish-route-points>span:last-child { text-align:left; }
+  .trip-real-map .publish-route-points>span:last-child i { grid-column:2; }
 }
 @media (max-width:767px) { .vehicle-photo-card { grid-template-columns:1fr; }.image-upload-actions { display:grid; grid-template-columns:1fr 1fr; }.image-upload-actions>* { width:100%; }.image-upload-actions .text-danger { grid-column:1/-1; } }
 

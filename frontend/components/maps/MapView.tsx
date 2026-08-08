@@ -33,6 +33,12 @@ function validPoint(point: GeoPoint | undefined): point is GeoPoint {
   );
 }
 
+function finiteNumber(value: string | undefined, fallback: number): number {
+  if (value == null || value.trim() === "") return fallback;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : fallback;
+}
+
 function configuredStyleUrl(): { url: string | null; usingFallback: boolean } {
   const configured = process.env.NEXT_PUBLIC_MAP_STYLE_URL?.trim();
   if (configured) {
@@ -99,8 +105,8 @@ export function MapView({ markers, route, onMarkerMove, onInvalidPoint, classNam
     void import("maplibre-gl").then((maplibre) => {
       if (disposed || !container.current || mapRef.current) return;
       maplibreRef.current = maplibre;
-      const defaultLatitude = Number(process.env.NEXT_PUBLIC_DEFAULT_LATITUDE ?? -25.2867);
-      const defaultLongitude = Number(process.env.NEXT_PUBLIC_DEFAULT_LONGITUDE ?? -57.3333);
+      const defaultLatitude = finiteNumber(process.env.NEXT_PUBLIC_DEFAULT_LATITUDE, -25.2867);
+      const defaultLongitude = finiteNumber(process.env.NEXT_PUBLIC_DEFAULT_LONGITUDE, -57.3333);
       const first = validPoint({ latitude: defaultLatitude, longitude: defaultLongitude })
         ? { latitude: defaultLatitude, longitude: defaultLongitude }
         : { latitude: PARAGUAY_CENTER[1], longitude: PARAGUAY_CENTER[0] };
@@ -108,7 +114,7 @@ export function MapView({ markers, route, onMarkerMove, onInvalidPoint, classNam
         container: container.current,
         style: styleUrl,
         center: [first.longitude, first.latitude],
-        zoom: Number(process.env.NEXT_PUBLIC_DEFAULT_ZOOM ?? 11),
+        zoom: finiteNumber(process.env.NEXT_PUBLIC_DEFAULT_ZOOM, 11),
         minZoom: 5,
         maxBounds: PARAGUAY_BOUNDS,
         attributionControl: {},
