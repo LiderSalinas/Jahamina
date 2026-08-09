@@ -35,7 +35,11 @@ export function TripCard({ trip, actionLabel, onAction, busy = false, role, vehi
         : trip.estado === "completo" || trip.cupos_disponibles === 0
           ? { label: "Completo", className: "badge-pending" }
           : { label: "Disponible", className: "badge-active" };
-  const occupied = trip.cupos_totales - trip.cupos_disponibles;
+  const availability = trip.cupos_disponibles > 1
+    ? `${trip.cupos_disponibles} lugares disponibles`
+    : trip.cupos_disponibles === 1
+      ? "1 lugar disponible"
+      : "Completo";
 
   return (
     <article className={`trip-card trip-card-official ${trip.cancelado || trip.estado === "cancelado" ? "is-cancelled" : ""}`}>
@@ -43,7 +47,7 @@ export function TripCard({ trip, actionLabel, onAction, busy = false, role, vehi
         <span className={status.className}>{status.label}</span>
         <span className="trip-role">{role === "conductor" ? "Vas como conductor" : role === "pasajero" ? "Vas como pasajero" : `Viaje #${trip.id}`}</span>
       </div>
-      <div className="trip-route">
+      <div className="trip-route" aria-label={`Ruta: ${trip.origen} a ${trip.destino}`}>
         <div className="trip-route-stop">
           <p className="trip-route-label"><span className="trip-route-pin is-origin" aria-hidden />Origen</p>
           <p className="trip-place">{trip.origen}</p>
@@ -56,15 +60,14 @@ export function TripCard({ trip, actionLabel, onAction, busy = false, role, vehi
       </div>
       <div className="trip-summary-row">
         <span className="trip-date"><span aria-hidden>◷</span>{compactDate(trip.fecha)}</span>
-        <span className="trip-occupancy"><span aria-hidden>♙</span>{occupied} de {trip.cupos_totales} lugares</span>
+        <span className={`trip-occupancy ${trip.cupos_disponibles === 0 ? "is-full" : ""}`}><span aria-hidden>♙</span>{availability}</span>
       </div>
       <div className="trip-meta-row">
-        <span>{trip.cupos_disponibles === 1 ? "1 lugar disponible" : `${trip.cupos_disponibles} lugares disponibles`}</span>
-        <span>{trip.punto_salida}</span>
+        <span>{trip.punto_salida ? `Salida: ${trip.punto_salida}` : "Salida a coordinar"}</span>
       </div>
       {vehicle && <div className="trip-vehicle"><VehicleImage brand={vehicle.marca} model={vehicle.modelo} color={vehicle.color} registration={vehicle.matricula} imageUrl={vehicle.imagen_url} /><div className="trip-vehicle-copy"><small>Vehículo asignado</small><b>{vehicle.marca} {vehicle.modelo}</b><span>{vehicle.color} · {vehicle.matricula}</span></div></div>}
-      {actionHref && actionLabel && <Link className="button-secondary mt-5 w-full text-center" href={actionHref}>{actionLabel}</Link>}
-      {actionLabel && onAction && !trip.cancelado && <button className="button-primary mt-5 w-full" disabled={busy} onClick={onAction} type="button">{busy ? "Procesando…" : actionLabel}</button>}
+      {actionHref && actionLabel && <Link className="button-secondary trip-card-action mt-5 w-full text-center" href={actionHref}>{actionLabel}</Link>}
+      {actionLabel && onAction && !trip.cancelado && <button className="button-primary trip-card-action mt-5 w-full" disabled={busy} onClick={onAction} type="button">{busy ? "Procesando…" : actionLabel}</button>}
     </article>
   );
 }

@@ -481,3 +481,10 @@ Estado: completado y validado.
 - Se reutiliza `TripCard` para ruta, estado, cupos y CTA de solicitud; el endpoint actual no expone conductor/vehiculo para estos resultados, por lo que no se inventaron datos.
 - Añadidos empty state accionable, loading estable, grid responsive y estados hover/focus respetando reduced-motion.
 - Validacion aprobada: ESLint, build de produccion, 148 pruebas Pytest y `git diff --check`.
+# 2026-08-09 - Refinamiento visual TripCard, Perfil y Vehículos
+
+- TripCard ahora comunica disponibilidad como "lugares disponibles"/"Completo" y usa recorrido vertical legible en mobile, preservando la composición desktop.
+- Perfil se separó en identidad, foto, datos personales y preferencias; se conservó ImageUploadControl y NotificationPermissionCard.
+- Vehículos recibió ficha visual con VehicleImage protagonista, metadata de capacidad/estado y acciones de foto existentes.
+- Se añadieron microinteracciones sutiles para botones/cards y soporte explícito de reduced-motion.
+- Validación final: lint OK, build OK, pytest 155 passed (2 warnings de permisos de caché), git diff --check OK.
