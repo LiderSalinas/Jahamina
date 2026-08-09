@@ -445,6 +445,14 @@ Estado: completado y validado.
 - Añadidos empty states accionables, responsive mobile-first, estados de foco/hover y reduccion de movimiento.
 - Validacion aprobada: ESLint, build de produccion, 148 pruebas Pytest y `git diff --check`.
 
+# 2026-08-09 - Diagnostico DOM de navegacion mobile
+
+- La evidencia se explico por estructura DOM: la bottom nav estaba dentro del header; ahora `site-header` y `.mobile-bottom-nav` son hermanos directos del fragmento de `Navbar`.
+- Se elimino el selector legacy `.mobile-navigation` y la bottom nav canonica queda fuera de cualquier containing block del header.
+- El CSS de produccion generado confirma `position:fixed`, `bottom:0`, `left:0`, `right:0`, branding visible en mobile y desktop navigation oculta hasta 767px.
+- `sw.js` solo maneja Push/notificationclick y no cachea HTML, CSS ni `_next/static`; no fue modificado.
+- Validacion aprobada: ESLint, build de produccion, 152 pruebas Pytest y `git diff --check`.
+
 # 2026-08-08 - Correccion de arquitectura mobile del header
 
 - La causa era la clase `.mobile-navigation`, compartida con reglas legacy de menu en flujo (`position:absolute`/`top:100%`); se reemplazo por `.mobile-bottom-nav` exclusiva y se eliminaron esas reglas contradictorias.

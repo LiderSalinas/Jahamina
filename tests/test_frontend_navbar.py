@@ -36,6 +36,7 @@ def test_mobile_shell_has_fixed_bottom_navigation_and_desktop_is_hidden() -> Non
     assert "position:fixed" in styles
     assert "display:none !important" in styles
     assert "padding-bottom:calc(4.35rem + env(safe-area-inset-bottom))" in styles
+    assert navbar.index("</header>") < navbar.index('className="mobile-bottom-nav"')
 
 
 def test_mobile_trip_discovery_contract_keeps_search_and_availability_copy() -> None:

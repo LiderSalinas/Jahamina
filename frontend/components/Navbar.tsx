@@ -46,18 +46,20 @@ export function Navbar() {
   const isActive = (href: string) => pathname === href || pathname.startsWith(`${href}/`);
   const closeAccount = () => setAccountOpen(false);
 
-  return <header className="app-header">
-    <nav className="app-header-inner" aria-label="Navegación principal">
-      <Link href="/" className="brand" onClick={closeAccount}><span className="brand-mark" aria-hidden="true">J</span><span><b>Jaha<em>mina</em></b><small>Vamos juntos</small></span></Link>
-      {!loading && user ? <>
-        <div className="desktop-navigation">{links.map(([label, href, icon]) => <Link key={href} href={href} aria-current={isActive(href) ? "page" : undefined} className={isActive(href) ? "is-active" : ""}><span aria-hidden>{icon}</span>{label}{href === "/reservas" && <UnreadBadge count={unread.total} />}</Link>)}</div>
-        <div className="header-actions" ref={accountRef}>
-          {token && <NotificationBell token={token} />}
-          <button className="account-trigger" type="button" aria-label="Abrir menú de cuenta" aria-expanded={accountOpen} aria-controls="account-navigation" onClick={() => setAccountOpen((value) => !value)}><UserAvatar name={user.nombre} imageUrl={user.imagen_url} size="sm" /><span className="account-copy"><b>{user.nombre}</b><small>Mi cuenta</small></span><span aria-hidden="true">⌄</span></button>
-          {accountOpen && <div className="account-menu" id="account-navigation"><Link href="/perfil" onClick={closeAccount}>Mi perfil</Link><Link href="/vehiculos" onClick={closeAccount}>Mis vehículos</Link><button type="button" onClick={() => { closeAccount(); logout(); }}>Cerrar sesión</button></div>}
-        </div>
-        <div className="mobile-bottom-nav" aria-label="Navegación móvil">{links.map(([label, href, icon]) => <Link key={href} href={href} aria-current={isActive(href) ? "page" : undefined} className={isActive(href) ? "is-active" : ""}><span aria-hidden>{icon}</span><small>{label}</small>{href === "/reservas" && <UnreadBadge count={unread.total} />}</Link>)}</div>
-      </> : <div className="public-navigation"><Link href="/login">Ingresar</Link><Link className="button-primary" href="/registro">Crear cuenta</Link></div>}
-    </nav>
-  </header>;
+  return <>
+    <header className="site-header app-header">
+      <nav className="app-header-inner" aria-label="Navegación principal">
+        <Link href="/" className="brand" onClick={closeAccount}><span className="brand-mark" aria-hidden="true">J</span><span><b>Jaha<em>mina</em></b><small>Vamos juntos</small></span></Link>
+        {!loading && user ? <>
+          <div className="desktop-navigation">{links.map(([label, href, icon]) => <Link key={href} href={href} aria-current={isActive(href) ? "page" : undefined} className={isActive(href) ? "is-active" : ""}><span aria-hidden>{icon}</span>{label}{href === "/reservas" && <UnreadBadge count={unread.total} />}</Link>)}</div>
+          <div className="header-actions" ref={accountRef}>
+            {token && <NotificationBell token={token} />}
+            <button className="account-trigger" type="button" aria-label="Abrir menú de cuenta" aria-expanded={accountOpen} aria-controls="account-navigation" onClick={() => setAccountOpen((value) => !value)}><UserAvatar name={user.nombre} imageUrl={user.imagen_url} size="sm" /><span className="account-copy"><b>{user.nombre}</b><small>Mi cuenta</small></span><span aria-hidden="true">⌄</span></button>
+            {accountOpen && <div className="account-menu" id="account-navigation"><Link href="/perfil" onClick={closeAccount}>Mi perfil</Link><Link href="/vehiculos" onClick={closeAccount}>Mis vehículos</Link><button type="button" onClick={() => { closeAccount(); logout(); }}>Cerrar sesión</button></div>}
+          </div>
+        </> : <div className="public-navigation"><Link href="/login">Ingresar</Link><Link className="button-primary" href="/registro">Crear cuenta</Link></div>}
+      </nav>
+    </header>
+    {!loading && user && <nav className="mobile-bottom-nav" aria-label="Navegación móvil">{links.map(([label, href, icon]) => <Link key={href} href={href} aria-current={isActive(href) ? "page" : undefined} className={isActive(href) ? "is-active" : ""}><span aria-hidden>{icon}</span><small>{label}</small>{href === "/reservas" && <UnreadBadge count={unread.total} />}</Link>)}</nav>}
+  </>;
 }
