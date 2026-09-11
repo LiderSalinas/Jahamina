@@ -488,3 +488,9 @@ Estado: completado y validado.
 - Vehículos recibió ficha visual con VehicleImage protagonista, metadata de capacidad/estado y acciones de foto existentes.
 - Se añadieron microinteracciones sutiles para botones/cards y soporte explícito de reduced-motion.
 - Validación final: lint OK, build OK, pytest 155 passed (2 warnings de permisos de caché), git diff --check OK.
+
+# 2026-09-11 - CORS para frontend desplegado
+
+- Añadido `https://jahamina-cyan.vercel.app` a `CORS_ORIGINS` conservando la configuración mediante variables de entorno y los orígenes locales.
+- El preflight `OPTIONS /auth/login` responde 200 con `Access-Control-Allow-Origin` para el dominio de Vercel, credenciales habilitadas y método POST permitido.
+- Validación específica, importación, compileall, OpenAPI y arranque Uvicorn aprobados; la suite completa requiere PostgreSQL y Docker no está disponible en este entorno.

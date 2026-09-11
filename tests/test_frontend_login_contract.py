@@ -4,6 +4,8 @@ from typing import Any
 
 from fastapi.testclient import TestClient
 
+from app.main import app
+
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -58,6 +60,7 @@ def test_login_succeeds_from_supported_frontend_origins(
         "http://127.0.0.1:3000",
         "http://lan-frontend.test:3000",
         "https://app.jahamina.test",
+        "https://jahamina-cyan.vercel.app",
     ):
         response = client.options(
             "/auth/login",
@@ -80,6 +83,28 @@ def test_login_succeeds_from_supported_frontend_origins(
         assert login.headers["access-control-allow-origin"] == origin
         assert login.json()["token_type"] == "bearer"
         assert login.json()["access_token"]
+
+
+def test_login_preflight_allows_vercel_frontend() -> None:
+    origin = "https://jahamina-cyan.vercel.app"
+
+    with TestClient(app) as client:
+        response = client.options(
+            "/auth/login",
+            headers={
+                "Origin": origin,
+                "Access-Control-Request-Method": "POST",
+                "Access-Control-Request-Headers": "content-type",
+            },
+        )
+
+    assert response.status_code == 200
+    assert response.headers["access-control-allow-origin"] == origin
+    assert response.headers["access-control-allow-credentials"] == "true"
+    assert "POST" in response.headers["access-control-allow-methods"]
+    assert "content-type" in response.headers[
+        "access-control-allow-headers"
+    ].lower()
 
 
 def test_cors_rejects_unknown_origin(client: TestClient):

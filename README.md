@@ -51,7 +51,7 @@ POSTGRES_PORT=5433
 JWT_SECRET_KEY=
 JWT_ALGORITHM=HS256
 ACCESS_TOKEN_EXPIRE_MINUTES=30
-CORS_ORIGINS=http://localhost:3000
+CORS_ORIGINS=http://localhost:3000,http://127.0.0.1:3000,https://jahamina-cyan.vercel.app
 REDIS_URL=redis://localhost:6379/0
 ```
 

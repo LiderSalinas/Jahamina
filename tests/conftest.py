@@ -11,7 +11,8 @@ from sqlalchemy.orm import Session
 # CORS is deterministic in tests and never inherits personal .env origins.
 os.environ["CORS_ORIGINS"] = (
     "http://localhost:3000,http://127.0.0.1:3000,"
-    "http://lan-frontend.test:3000,https://app.jahamina.test"
+    "http://lan-frontend.test:3000,https://app.jahamina.test,"
+    "https://jahamina-cyan.vercel.app"
 )
 
 from app.core.db import engine, get_db
