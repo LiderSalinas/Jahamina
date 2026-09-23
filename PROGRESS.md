@@ -1,5 +1,26 @@
 # Progreso Jahamina v1.0
 
+## 2026-09-22 — Auditoría de estabilidad y dependencias
+
+- Corregido el caché de mapas para evitar consultas duplicadas al proveedor
+  cuando Redis no está disponible; se usa un respaldo temporal acotado en
+  memoria y se conserva Redis como caché principal.
+- Actualizados Next.js a 16.3.6, MapLibre GL JS a 6.11.0 y Sharp a 0.35.4;
+  `npm audit --omit=dev` queda sin vulnerabilidades.
+- Adaptado el manejo de errores del mapa al contrato de tipos de MapLibre 6.
+- `.env.dev` y `.env.prod` se retiraron del seguimiento de Git sin leer ni
+  borrar las copias locales. Las credenciales que hayan sido versionadas deben
+  rotarse porque pueden permanecer en el historial remoto.
+- Backend: `compileall`, importación, OpenAPI (61 rutas), `pip check` y cabeza
+  Alembic `20260807_0009` correctos.
+- Pruebas ejecutables sin PostgreSQL: 85 aprobadas. Otras 70 pruebas de
+  integración y una de concurrencia quedaron bloqueadas porque este entorno no
+  incluye PostgreSQL ni Docker; no se utilizó Neon de producción para pruebas
+  con escrituras.
+- Frontend: ESLint, TypeScript y build de producción aprobados en 13 rutas.
+- Producción pública revisada en landing, login y registro sin realizar
+  escrituras persistentes.
+
 ## 2026-08-04 — Acciones de hoja de ruta en tiempo real
 
 - Consolidada la máquina de estados y añadido `llego_al_punto` mediante migración incremental.
@@ -494,3 +515,12 @@ Estado: completado y validado.
 - Añadido `https://jahamina-cyan.vercel.app` a `CORS_ORIGINS` conservando la configuración mediante variables de entorno y los orígenes locales.
 - El preflight `OPTIONS /auth/login` responde 200 con `Access-Control-Allow-Origin` para el dominio de Vercel, credenciales habilitadas y método POST permitido.
 - Validación específica, importación, compileall, OpenAPI y arranque Uvicorn aprobados; la suite completa requiere PostgreSQL y Docker no está disponible en este entorno.
+
+# 2026-09-22 - Rediseño público de Jahamina
+
+- Rediseñadas la landing, la navegación pública, el login y el registro con una identidad de movilidad propia: mapa de Paraguay, recorridos, composición editorial y layouts específicos para escritorio y teléfono.
+- La marca original se conserva en un componente reutilizable: `Jaha` en verde, `mina` en naranja y el lema `Vamos juntos`; también se conserva el isotipo verde con el punto naranja.
+- La landing comunica ejemplos de trayectos sin presentarlos como datos reales y deriva búsqueda/publicación al flujo autenticado existente.
+- Login y registro mantienen exactamente sus llamadas, validaciones, redirecciones y manejo de errores; Neon, API y autenticación no fueron modificados.
+- Validación aprobada: ESLint, TypeScript, build de producción con 13 rutas, 59 contratos frontend y `git diff --check`.
+- Tres pruebas de login dependientes de PostgreSQL local quedaron fuera de esta validación visual porque el entorno no dispone de PostgreSQL/Docker; no se ejecutaron contra Neon para evitar escrituras.

@@ -136,7 +136,7 @@ export function MapView({ markers, route, onMarkerMove, onInvalidPoint, classNam
           setError(MAP_ERROR_MESSAGE);
         }
         if (process.env.NODE_ENV === "development") {
-          console.warn("Mapa: falló la carga del estilo o de uno de sus recursos.", event.error?.name ?? "MapError");
+          console.warn("Mapa: falló la carga del estilo o de uno de sus recursos.", event.error ?? "MapError");
         }
       });
     }).catch(() => setError(MAP_ERROR_MESSAGE));

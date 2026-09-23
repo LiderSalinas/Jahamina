@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
 import { useAuth } from "@/components/AuthProvider";
+import { JahaminaBrand } from "@/components/JahaminaBrand";
 import { UnreadBadge } from "@/components/chat/UnreadBadge";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
 import { UserAvatar } from "@/components/ui/UserAvatar";
@@ -49,7 +50,7 @@ export function Navbar() {
   return <>
     <header className="site-header app-header">
       <nav className="app-header-inner" aria-label="Navegación principal">
-        <Link href="/" className="brand" onClick={closeAccount}><span className="brand-mark" aria-hidden="true">J</span><span><b>Jaha<em>mina</em></b><small>Vamos juntos</small></span></Link>
+        <JahaminaBrand onClick={closeAccount} />
         {!loading && user ? <>
           <div className="desktop-navigation">{links.map(([label, href, icon]) => <Link key={href} href={href} aria-current={isActive(href) ? "page" : undefined} className={isActive(href) ? "is-active" : ""}><span aria-hidden>{icon}</span>{label}{href === "/reservas" && <UnreadBadge count={unread.total} />}</Link>)}</div>
           <div className="header-actions" ref={accountRef}>
@@ -57,7 +58,16 @@ export function Navbar() {
             <button className="account-trigger" type="button" aria-label="Abrir menú de cuenta" aria-expanded={accountOpen} aria-controls="account-navigation" onClick={() => setAccountOpen((value) => !value)}><UserAvatar name={user.nombre} imageUrl={user.imagen_url} size="sm" /><span className="account-copy"><b>{user.nombre}</b><small>Mi cuenta</small></span><span aria-hidden="true">⌄</span></button>
             {accountOpen && <div className="account-menu" id="account-navigation"><Link href="/perfil" onClick={closeAccount}>Mi perfil</Link><Link href="/vehiculos" onClick={closeAccount}>Mis vehículos</Link><button type="button" onClick={() => { closeAccount(); logout(); }}>Cerrar sesión</button></div>}
           </div>
-        </> : <div className="public-navigation"><Link href="/login">Ingresar</Link><Link className="button-primary" href="/registro">Crear cuenta</Link></div>}
+        </> : <>
+          <div className="public-desktop-links" aria-label="Secciones de inicio">
+            <Link href="/#como-funciona">Cómo funciona</Link>
+            <Link href="/#seguridad">Seguridad</Link>
+          </div>
+          <div className="public-navigation">
+            <Link href="/login">Ingresar</Link>
+            <Link className="button-primary" href="/registro">Crear cuenta <span aria-hidden="true">→</span></Link>
+          </div>
+        </>}
       </nav>
     </header>
     {!loading && user && <nav className="mobile-bottom-nav" aria-label="Navegación móvil">{links.map(([label, href, icon]) => <Link key={href} href={href} aria-current={isActive(href) ? "page" : undefined} className={isActive(href) ? "is-active" : ""}><span aria-hidden>{icon}</span><small>{label}</small>{href === "/reservas" && <UnreadBadge count={unread.total} />}</Link>)}</nav>}

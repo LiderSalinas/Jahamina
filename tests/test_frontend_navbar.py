@@ -48,3 +48,15 @@ def test_mobile_trip_discovery_contract_keeps_search_and_availability_copy() -> 
     assert "trip-route-stop.is-destination" in styles
     assert "trip-search-button" in page
     assert 'href="/viajes/nuevo"' in page
+
+
+def test_public_brand_preserves_name_colors_and_tagline() -> None:
+    brand = (ROOT / "frontend/components/JahaminaBrand.tsx").read_text(encoding="utf-8")
+    styles = (ROOT / "frontend/app/globals.css").read_text(encoding="utf-8")
+
+    assert "Jaha" in brand
+    assert "mina" in brand
+    assert "Vamos juntos" in brand
+    assert ".brand b>span" in styles
+    assert ".brand em" in styles
+    assert "var(--color-accent)" in styles

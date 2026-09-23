@@ -1,4 +1,6 @@
 import json
+import time
+from typing import Any
 from urllib.parse import quote
 
 import httpx
@@ -12,17 +14,46 @@ from app.schemas.map_schema import Coordinates, GeocodingResult, RouteResponse
 from app.services.geocoding_provider import configured_providers, normalize_search_query
 
 
+_MEMORY_CACHE_MAX_ENTRIES = 256
+_memory_cache: dict[str, tuple[float, Any]] = {}
+
+
+def _memory_cache_get(key: str) -> Any | None:
+    cached = _memory_cache.get(key)
+    if cached is None:
+        return None
+    expires_at, value = cached
+    if expires_at <= time.monotonic():
+        _memory_cache.pop(key, None)
+        return None
+    return value
+
+
+def _memory_cache_set(key: str, value: Any) -> None:
+    if len(_memory_cache) >= _MEMORY_CACHE_MAX_ENTRIES:
+        oldest_key = min(_memory_cache, key=lambda item: _memory_cache[item][0])
+        _memory_cache.pop(oldest_key, None)
+    _memory_cache[key] = (time.monotonic() + settings.map_cache_ttl_seconds, value)
+
+
 async def _cached_json(key: str, fetcher):
     redis = get_redis_client()
     try:
-        cached = await redis.get(key)
-        if cached:
-            return json.loads(cached)
+        try:
+            cached = await redis.get(key)
+            if cached:
+                return json.loads(cached)
+        except RedisError:
+            cached = _memory_cache_get(key)
+            if cached is not None:
+                return cached
+
         result = await fetcher()
-        await redis.set(key, json.dumps(result), ex=settings.map_cache_ttl_seconds)
+        try:
+            await redis.set(key, json.dumps(result), ex=settings.map_cache_ttl_seconds)
+        except RedisError:
+            _memory_cache_set(key, result)
         return result
-    except RedisError:
-        return await fetcher()
     finally:
         await redis.aclose()
 

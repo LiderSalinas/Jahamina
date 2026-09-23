@@ -32,13 +32,19 @@ export default function RegisterPage() {
   }
 
   return (
-    <section className="auth-page">
-      <form className="auth-card" onSubmit={submit}>
+    <section className="auth-page auth-page-premium">
+      <aside className="auth-showcase auth-showcase-register">
+        <div className="auth-route-visual" aria-hidden="true"><i /><span /><i /></div>
+        <div><p className="landing-kicker">Personas · rutas · comunidad</p><h2>Tu lugar está en el próximo viaje.</h2><p>Creá tu perfil y empezá a compartir trayectos dentro de Paraguay.</p></div>
+        <div className="auth-proof"><span>01</span><p><b>Vos decidís</b><small>Elegí con quién y cuándo viajar.</small></p></div>
+      </aside>
+      <div className="auth-panel auth-panel-register">
+        <Link className="auth-back" href="/">← Volver al inicio</Link>
+      <form className="auth-card auth-card-premium" onSubmit={submit}>
         <div>
-          <span className="auth-mark" aria-hidden>J</span>
           <p className="eyebrow">Sumate a la comunidad</p>
-          <h1>Creá tu cuenta</h1>
-          <p className="auth-intro">Empezá a compartir trayectos dentro de Paraguay.</p>
+          <h1>Empezá tu camino.</h1>
+          <p className="auth-intro">Solo necesitamos algunos datos para crear tu perfil.</p>
         </div>
         {error && <p className="error-message" role="alert">{error}</p>}
         <div className="form-field">
@@ -58,6 +64,8 @@ export default function RegisterPage() {
           ¿Ya tenés cuenta? <Link className="font-bold" href="/login">Ingresá</Link>
         </p>
       </form>
+        <p className="auth-legal">Al registrarte aceptás las reglas de convivencia de Jahamina.</p>
+      </div>
     </section>
   );
 }

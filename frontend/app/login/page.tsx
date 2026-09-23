@@ -42,12 +42,11 @@ function LoginForm() {
   }
 
   return (
-    <form className="auth-card" method="post" onSubmit={submit}>
+    <form className="auth-card auth-card-premium" method="post" onSubmit={submit}>
       <div>
-        <span className="auth-mark" aria-hidden>J</span>
         <p className="eyebrow">Bienvenido de vuelta</p>
-        <h1>Ingresá a Jahamina</h1>
-        <p className="auth-intro">Tus viajes, reservas y conversaciones están en un solo lugar.</p>
+        <h1>Volvé a tu camino.</h1>
+        <p className="auth-intro">Tus trayectos, reservas y conversaciones siguen esperándote.</p>
       </div>
       {params.get("registered") && <p className="success-message">Cuenta creada. Ya podés ingresar.</p>}
       {error && <p className="error-message" role="alert">{error}</p>}
@@ -68,10 +67,17 @@ function LoginForm() {
 
 export default function LoginPage() {
   return (
-    <section className="auth-page">
-      <Suspense fallback={<div className="async-state">Preparando Jahamina…</div>}>
-        <LoginForm />
-      </Suspense>
+    <section className="auth-page auth-page-premium">
+      <aside className="auth-showcase">
+        <div className="auth-route-visual" aria-hidden="true"><i /><span /><i /></div>
+        <div><p className="landing-kicker">Tu comunidad en movimiento</p><h2>El próximo trayecto empieza con una conversación.</h2><p>Coordiná tu viaje con personas que van hacia el mismo lugar.</p></div>
+        <div className="auth-mini-route"><span>Asunción</span><i /><span>Ciudad del Este</span></div>
+      </aside>
+      <div className="auth-panel">
+        <Link className="auth-back" href="/">← Volver al inicio</Link>
+        <Suspense fallback={<div className="async-state">Preparando Jahamina…</div>}><LoginForm /></Suspense>
+        <p className="auth-legal">Acceso protegido · Tus datos viajan de forma segura</p>
+      </div>
     </section>
   );
 }
