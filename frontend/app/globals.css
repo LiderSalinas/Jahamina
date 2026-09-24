@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "./mobility.css";
 
 :root {
   --color-primary: #0b6b53;

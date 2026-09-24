@@ -104,6 +104,8 @@ export function MapView({ markers, route, onMarkerMove, onInvalidPoint, classNam
     }
     void import("maplibre-gl").then((maplibre) => {
       if (disposed || !container.current || mapRef.current) return;
+      // Set before constructing any map: the module worker needs its shared sibling.
+      maplibre.setWorkerUrl(process.env.NEXT_PUBLIC_MAPLIBRE_WORKER_URL!);
       maplibreRef.current = maplibre;
       const defaultLatitude = finiteNumber(process.env.NEXT_PUBLIC_DEFAULT_LATITUDE, -25.2867);
       const defaultLongitude = finiteNumber(process.env.NEXT_PUBLIC_DEFAULT_LONGITUDE, -57.3333);

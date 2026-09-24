@@ -524,3 +524,20 @@ Estado: completado y validado.
 - Login y registro mantienen exactamente sus llamadas, validaciones, redirecciones y manejo de errores; Neon, API y autenticación no fueron modificados.
 - Validación aprobada: ESLint, TypeScript, build de producción con 13 rutas, 59 contratos frontend y `git diff --check`.
 - Tres pruebas de login dependientes de PostgreSQL local quedaron fuera de esta validación visual porque el entorno no dispone de PostgreSQL/Docker; no se ejecutaron contra Neon para evitar escrituras.
+# 2026-09-22 - Rediseño del área principal autenticada
+
+- Navbar autenticada con navegación de escritorio e iconos SVG; navegación móvil verde profundo, estados activos y safe areas existentes. Se conserva la marca Jaha verde, mina naranja y VAMOS JUNTOS.
+- `/viajes`: cabecera editorial con recorrido decorativo, buscador marfil, conteo real de resultados y tarjetas tipo boleto; composición específica para móvil.
+- `/viajes/nuevo`: cabecera de publicación, pasos de recorrido, formularios marfil y mapa real con hoja de ruta. En móvil los campos preceden al mapa.
+- Estilos aislados en `frontend/app/mobility.css`, importados desde el CSS existente; reutilizados TripCard, LocationSearch, MapView y el flujo funcional de publicación sin modificar sus reglas.
+- Sin cambios en backend, Neon, API, autenticación, credenciales ni manifest. Sin commit ni push.
+- Validación: ESLint OK; `npx tsc --noEmit` OK; build de producción OK (13 rutas); 22 contratos relacionados de navbar, publicación y búsqueda geográfica OK. Pytest emitió dos advertencias de permisos de caché. El build requirió reintento fuera del sandbox por `spawn EPERM`.
+- Pendiente: revisión visual manual en navegador de escritorio y móvil; no se ejecutó verificación visual automatizada.
+
+# 2026-09-24 - Worker de MapLibre en producción
+
+- Causa comprobada en MapLibre 6.11.0 y el build de Next.js 16.3.6/Turbopack: `import.meta.url` se transforma mediante el runtime en `file:///ROOT/node_modules/maplibre-gl/dist/maplibre-gl.mjs`. La detección automática solo admite HTTP(S), devuelve una URL vacía y `new Worker("", { type: "module" })` solicita el documento actual, explicando el rechazo de HTML como JavaScript. Además, el worker emitido con hash conserva `./maplibre-gl-shared.mjs` sin hash; esa dependencia no existe en static/media (404 confirmado en producción local).
+- Solución: next.config copia el worker y su módulo compartido de la dependencia instalada a `public/maplibre/<version>/`, conservando nombres e importaciones. La URL pública se inyecta durante la compilación y MapView llama a setWorkerUrl antes de crear el mapa. Funciona con next dev y next build directo, sin CDN ni cambios de bundler. Archivos generados excluidos de Git y ESLint.
+- PWA revisada: una sola instancia de InstallPrompt, listeners con limpieza y ningún console propio. Sin cambio de comportamiento ni supresión de mensajes del navegador.
+- Validación aprobada: npm run lint; npx tsc --noEmit; npm run build (13 rutas); 20 pruebas Pytest relacionadas con mapa, publicación y PWA; prueba HTTP del grafo de módulos en next start y next dev (200, MIME JavaScript, igualdad con la versión instalada y enlace ESM del worker con su dependencia); git diff --check. El build y next dev requirieron ejecución fuera del sandbox por spawn EPERM. Pytest informó dos advertencias de permisos de caché; el verificador ESM informa el aviso experimental estándar de Node.
+- No se desplegó en Vercel ni se verificó renderizado WebGL en navegador; validación de producción realizada con next start local. Backend, Neon, autenticación, credenciales y cambios visuales existentes preservados. Sin commit ni push.

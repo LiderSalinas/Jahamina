@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
 import { useAuth } from "@/components/AuthProvider";
+import { MobilityIcon } from "@/components/ui/MobilityIcon";
 import { JahaminaBrand } from "@/components/JahaminaBrand";
 import { UnreadBadge } from "@/components/chat/UnreadBadge";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
@@ -48,11 +49,11 @@ export function Navbar() {
   const closeAccount = () => setAccountOpen(false);
 
   return <>
-    <header className="site-header app-header">
+    <header className={`site-header app-header ${!loading && user ? "authenticated-header" : ""}`}>
       <nav className="app-header-inner" aria-label="Navegación principal">
         <JahaminaBrand onClick={closeAccount} />
         {!loading && user ? <>
-          <div className="desktop-navigation">{links.map(([label, href, icon]) => <Link key={href} href={href} aria-current={isActive(href) ? "page" : undefined} className={isActive(href) ? "is-active" : ""}><span aria-hidden>{icon}</span>{label}{href === "/reservas" && <UnreadBadge count={unread.total} />}</Link>)}</div>
+          <div className="desktop-navigation">{links.map(([label, href]) => <Link key={href} href={href} aria-current={isActive(href) ? "page" : undefined} className={isActive(href) ? "is-active" : ""}><span aria-hidden><MobilityIcon name={label} /></span>{label}{href === "/reservas" && <UnreadBadge count={unread.total} />}</Link>)}</div>
           <div className="header-actions" ref={accountRef}>
             {token && <NotificationBell token={token} />}
             <button className="account-trigger" type="button" aria-label="Abrir menú de cuenta" aria-expanded={accountOpen} aria-controls="account-navigation" onClick={() => setAccountOpen((value) => !value)}><UserAvatar name={user.nombre} imageUrl={user.imagen_url} size="sm" /><span className="account-copy"><b>{user.nombre}</b><small>Mi cuenta</small></span><span aria-hidden="true">⌄</span></button>
@@ -70,6 +71,6 @@ export function Navbar() {
         </>}
       </nav>
     </header>
-    {!loading && user && <nav className="mobile-bottom-nav" aria-label="Navegación móvil">{links.map(([label, href, icon]) => <Link key={href} href={href} aria-current={isActive(href) ? "page" : undefined} className={isActive(href) ? "is-active" : ""}><span aria-hidden>{icon}</span><small>{label}</small>{href === "/reservas" && <UnreadBadge count={unread.total} />}</Link>)}</nav>}
+    {!loading && user && <nav className="mobile-bottom-nav" aria-label="Navegación móvil">{links.map(([label, href]) => <Link key={href} href={href} aria-current={isActive(href) ? "page" : undefined} className={isActive(href) ? "is-active" : ""}><span aria-hidden><MobilityIcon name={label} /></span><small>{label}</small>{href === "/reservas" && <UnreadBadge count={unread.total} />}</Link>)}</nav>}
   </>;
 }
